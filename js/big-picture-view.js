@@ -13,27 +13,36 @@ const SELECTORS = {
   commentsLoader: '.comments-loader'
 };
 
+let elementsCache = null;
+
 /**
- * Получает элементы модального окна
+ * Получает элементы модального окна (кэширует результат)
  * @returns {Object|null}
  */
 function getElements() {
+  if (elementsCache) {
+    return elementsCache;
+  }
+
   const bigPicture = document.querySelector(SELECTORS.bigPicture);
   if (!bigPicture) {
     return null;
   }
-  return {
+
+  elementsCache = {
     bigPicture,
-    bigPictureImg: bigPicture.querySelector(SELECTORS.bigPictureImg),
-    bigPictureCaption: bigPicture.querySelector(SELECTORS.bigPictureCaption),
-    bigPictureLikes: bigPicture.querySelector(SELECTORS.bigPictureLikes),
-    bigPictureCommentShown: bigPicture.querySelector(SELECTORS.bigPictureCommentShown),
-    bigPictureCommentTotal: bigPicture.querySelector(SELECTORS.bigPictureCommentTotal),
-    bigPictureComments: bigPicture.querySelector(SELECTORS.bigPictureComments),
-    bigPictureCancel: bigPicture.querySelector(SELECTORS.bigPictureCancel),
-    socialCommentCount: bigPicture.querySelector(SELECTORS.socialCommentCount),
-    commentsLoader: bigPicture.querySelector(SELECTORS.commentsLoader)
+    imgElement: bigPicture.querySelector(SELECTORS.bigPictureImg),
+    captionElement: bigPicture.querySelector(SELECTORS.bigPictureCaption),
+    likesElement: bigPicture.querySelector(SELECTORS.bigPictureLikes),
+    commentShownElement: bigPicture.querySelector(SELECTORS.bigPictureCommentShown),
+    commentTotalElement: bigPicture.querySelector(SELECTORS.bigPictureCommentTotal),
+    commentsElement: bigPicture.querySelector(SELECTORS.bigPictureComments),
+    cancelElement: bigPicture.querySelector(SELECTORS.bigPictureCancel),
+    commentCountElement: bigPicture.querySelector(SELECTORS.socialCommentCount),
+    commentsLoaderElement: bigPicture.querySelector(SELECTORS.commentsLoader)
   };
+
+  return elementsCache;
 }
 
 /**
@@ -64,7 +73,7 @@ function renderComments(elements, comments) {
     fragment.appendChild(commentElement);
   });
 
-  elements.bigPictureComments.appendChild(fragment);
+  elements.commentsElement.appendChild(fragment);
 }
 
 /**
@@ -77,17 +86,17 @@ function openPicture(photo) {
     return;
   }
 
-  elements.bigPictureImg.src = photo.url;
-  elements.bigPictureCaption.textContent = photo.description;
-  elements.bigPictureLikes.textContent = photo.likes;
-  elements.bigPictureCommentShown.textContent = photo.comments.length;
-  elements.bigPictureCommentTotal.textContent = photo.comments.length;
+  elements.imgElement.src = photo.url;
+  elements.captionElement.textContent = photo.description;
+  elements.likesElement.textContent = photo.likes;
+  elements.commentShownElement.textContent = photo.comments.length;
+  elements.commentTotalElement.textContent = photo.comments.length;
 
-  elements.bigPictureComments.innerHTML = '';
+  elements.commentsElement.innerHTML = '';
   renderComments(elements, photo.comments);
 
-  elements.socialCommentCount.classList.add('hidden');
-  elements.commentsLoader.classList.add('hidden');
+  elements.commentCountElement.classList.add('hidden');
+  elements.commentsLoaderElement.classList.add('hidden');
 
   elements.bigPicture.classList.remove('hidden');
   document.body.classList.add('modal-open');
@@ -104,7 +113,57 @@ function closePicture() {
 
   elements.bigPicture.classList.add('hidden');
   document.body.classList.remove('modal-open');
-  elements.bigPictureComments.innerHTML = '';
+  elements.commentsElement.innerHTML = '';
+}
+
+/**
+ * Обрабатывает клик по кнопке закрытия
+ * @param {Function} onClose - callback при закрытии
+ */
+function onCancelClick(onClose) {
+  closePicture();
+  if (onClose) {
+    onClose();
+  }
+}
+
+/**
+ * Обрабатывает клик по оверлею
+ * @param {Event} evt - событие клика
+ * @param {Function} onClose - callback при закрытии
+ */
+function onOverlayClick(evt, onClose) {
+  const elements = getElements();
+  if (!elements) {
+    return;
+  }
+
+  if (evt.target === elements.bigPicture) {
+    closePicture();
+    if (onClose) {
+      onClose();
+    }
+  }
+}
+
+/**
+ * Обрабатывает нажатие клавиши Escape
+ * @param {KeyboardEvent} evt - событие клавиатуры
+ * @param {Function} onClose - callback при закрытии
+ */
+function onEscapePress(evt, onClose) {
+  const elements = getElements();
+  if (!elements) {
+    return;
+  }
+
+  if (evt.key === 'Escape' && !elements.bigPicture.classList.contains('hidden')) {
+    evt.preventDefault();
+    closePicture();
+    if (onClose) {
+      onClose();
+    }
+  }
 }
 
 /**
@@ -117,31 +176,9 @@ function initPictureModal(onClose) {
     return;
   }
 
-  elements.bigPictureCancel.addEventListener('click', () => {
-    closePicture();
-    if (onClose) {
-      onClose();
-    }
-  });
-
-  elements.bigPicture.addEventListener('click', (evt) => {
-    if (evt.target === elements.bigPicture) {
-      closePicture();
-      if (onClose) {
-        onClose();
-      }
-    }
-  });
-
-  document.addEventListener('keydown', (evt) => {
-    if (evt.key === 'Escape' && !elements.bigPicture.classList.contains('hidden')) {
-      evt.preventDefault();
-      closePicture();
-      if (onClose) {
-        onClose();
-      }
-    }
-  });
+  elements.cancelElement.addEventListener('click', () => onCancelClick(onClose));
+  elements.bigPicture.addEventListener('click', (evt) => onOverlayClick(evt, onClose));
+  document.addEventListener('keydown', (evt) => onEscapePress(evt, onClose));
 }
 
 export { openPicture, closePicture, initPictureModal };

@@ -54,8 +54,7 @@ const filters = {
  * @returns {Array}
  */
 function applyFilter(filterType, photos) {
-  const filter = filters[filterType];
-  return filter ? filter(photos) : photos;
+  return filters[filterType]?.(photos) ?? photos;
 }
 
 export { applyFilter, filters, filterDefault, filterRandom, filterDiscussed };

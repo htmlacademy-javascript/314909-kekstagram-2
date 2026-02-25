@@ -2,6 +2,25 @@
 
 const PICTURE_SELECTOR = '.pictures';
 const TEMPLATE_SELECTOR = '#picture';
+const PICTURE_ELEMENT_SELECTOR = '.picture';
+const PICTURE_IMG_SELECTOR = '.picture__img';
+const PICTURE_COMMENTS_SELECTOR = '.picture__comments';
+const PICTURE_LIKES_SELECTOR = '.picture__likes';
+
+let picturesContainer = null;
+let pictureTemplate = null;
+
+/**
+ * Инициализирует элементы для отрисовки
+ */
+function initElements() {
+  if (!picturesContainer) {
+    picturesContainer = document.querySelector(PICTURE_SELECTOR);
+  }
+  if (!pictureTemplate) {
+    pictureTemplate = document.querySelector(TEMPLATE_SELECTOR);
+  }
+}
 
 /**
  * Создаёт DOM-элемент миниатюры фотографии
@@ -10,14 +29,14 @@ const TEMPLATE_SELECTOR = '#picture';
  * @returns {HTMLElement}
  */
 function createPictureElement(photo, template) {
-  const pictureElement = template.cloneNode(true).querySelector('.picture');
+  const pictureElement = template.cloneNode(true).querySelector(PICTURE_ELEMENT_SELECTOR);
 
-  const img = pictureElement.querySelector('.picture__img');
+  const img = pictureElement.querySelector(PICTURE_IMG_SELECTOR);
   img.src = photo.url;
   img.alt = photo.description;
 
-  pictureElement.querySelector('.picture__comments').textContent = photo.comments.length;
-  pictureElement.querySelector('.picture__likes').textContent = photo.likes;
+  pictureElement.querySelector(PICTURE_COMMENTS_SELECTOR).textContent = photo.comments.length;
+  pictureElement.querySelector(PICTURE_LIKES_SELECTOR).textContent = photo.likes;
 
   return pictureElement;
 }
@@ -26,12 +45,13 @@ function createPictureElement(photo, template) {
  * Очищает контейнер с фотографиями
  */
 function clearPictures() {
-  const picturesContainer = document.querySelector(PICTURE_SELECTOR);
+  initElements();
+
   if (!picturesContainer) {
     return;
   }
 
-  const photoElements = picturesContainer.querySelectorAll('.picture');
+  const photoElements = picturesContainer.querySelectorAll(PICTURE_ELEMENT_SELECTOR);
   photoElements.forEach((element) => element.remove());
 }
 
@@ -41,9 +61,7 @@ function clearPictures() {
  */
 function renderPictures(photos) {
   clearPictures();
-
-  const picturesContainer = document.querySelector(PICTURE_SELECTOR);
-  const pictureTemplate = document.querySelector(TEMPLATE_SELECTOR);
+  initElements();
 
   if (!picturesContainer || !pictureTemplate) {
     return;
