@@ -23,10 +23,25 @@ function createPictureElement(photo, template) {
 }
 
 /**
+ * Очищает контейнер с фотографиями
+ */
+function clearPictures() {
+  const picturesContainer = document.querySelector(PICTURE_SELECTOR);
+  if (!picturesContainer) {
+    return;
+  }
+
+  const photoElements = picturesContainer.querySelectorAll('.picture');
+  photoElements.forEach((element) => element.remove());
+}
+
+/**
  * Отрисовывает миниатюры фотографий на странице
  * @param {Array} photos - массив фотографий
  */
 function renderPictures(photos) {
+  clearPictures();
+
   const picturesContainer = document.querySelector(PICTURE_SELECTOR);
   const pictureTemplate = document.querySelector(TEMPLATE_SELECTOR);
 
@@ -44,4 +59,4 @@ function renderPictures(photos) {
   picturesContainer.appendChild(fragment);
 }
 
-export { renderPictures };
+export { renderPictures, clearPictures };
