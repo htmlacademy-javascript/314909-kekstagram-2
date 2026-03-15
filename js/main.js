@@ -4,6 +4,10 @@ import { photos, generatePhotosData } from './models/photo.js';
 import { renderPictures } from './thumbnails.js';
 import { initGallery } from './gallery.js';
 import { initFilters } from './filters.js';
+import { initUploadForm } from './upload-form.js';
+
+// Инициализация формы загрузки
+initUploadForm();
 
 // Отрисовка миниатюр
 renderPictures(photos);
