@@ -13,7 +13,11 @@ const SELECTORS = {
   commentsLoader: '.comments-loader'
 };
 
+const COMMENTS_PER_PAGE = 5;
+
 let elementsCache = null;
+let currentComments = [];
+let displayedCommentsCount = 0;
 
 /**
  * Получает элементы модального окна (кэширует результат)
@@ -49,11 +53,14 @@ function getElements() {
  * Отрисовывает комментарии к фотографии
  * @param {Object} elements - элементы модального окна
  * @param {Array} comments - массив комментариев
+ * @param {number} start - индекс начала порции
+ * @param {number} end - индекс конца порции
  */
-function renderComments(elements, comments) {
+function renderComments(elements, comments, start, end) {
   const fragment = document.createDocumentFragment();
+  const commentsToRender = comments.slice(start, end);
 
-  comments.forEach((comment) => {
+  commentsToRender.forEach((comment) => {
     const commentElement = document.createElement('li');
     commentElement.classList.add('social__comment');
 
@@ -77,6 +84,32 @@ function renderComments(elements, comments) {
 }
 
 /**
+ * Обновляет счётчик показанных комментариев
+ * @param {Object} elements - элементы модального окна
+ */
+function updateCommentCount(elements) {
+  elements.commentShownElement.textContent = displayedCommentsCount;
+}
+
+/**
+ * Загружает следующую порцию комментариев
+ * @param {Object} elements - элементы модального окна
+ */
+function loadMoreComments(elements) {
+  const start = displayedCommentsCount;
+  const end = Math.min(start + COMMENTS_PER_PAGE, currentComments.length);
+
+  renderComments(elements, currentComments, start, end);
+  displayedCommentsCount = end;
+  updateCommentCount(elements);
+
+  // Скрываем кнопку, если показаны все комментарии
+  if (displayedCommentsCount >= currentComments.length) {
+    elements.commentsLoaderElement.classList.add('hidden');
+  }
+}
+
+/**
  * Открывает полноразмерное изображение
  * @param {Object} photo - объект фотографии
  */
@@ -89,14 +122,21 @@ function openPicture(photo) {
   elements.imgElement.src = photo.url;
   elements.captionElement.textContent = photo.description;
   elements.likesElement.textContent = photo.likes;
-  elements.commentShownElement.textContent = photo.comments.length;
+
+  // Инициализируем состояние комментариев
+  currentComments = photo.comments;
+  displayedCommentsCount = 0;
+
   elements.commentTotalElement.textContent = photo.comments.length;
 
   elements.commentsElement.innerHTML = '';
-  renderComments(elements, photo.comments);
 
-  elements.commentCountElement.classList.add('hidden');
-  elements.commentsLoaderElement.classList.add('hidden');
+  // Показываем блоки счётчика и загрузки
+  elements.commentCountElement.classList.remove('hidden');
+  elements.commentsLoaderElement.classList.remove('hidden');
+
+  // Загружаем первую порцию комментариев
+  loadMoreComments(elements);
 
   elements.bigPicture.classList.remove('hidden');
   document.body.classList.add('modal-open');
@@ -114,6 +154,10 @@ function closePicture() {
   elements.bigPicture.classList.add('hidden');
   document.body.classList.remove('modal-open');
   elements.commentsElement.innerHTML = '';
+
+  // Сбрасываем состояние комментариев
+  currentComments = [];
+  displayedCommentsCount = 0;
 }
 
 /**
@@ -179,6 +223,9 @@ function initPictureModal(onClose) {
   elements.cancelElement.addEventListener('click', () => onCancelClick(onClose));
   elements.bigPicture.addEventListener('click', (evt) => onOverlayClick(evt, onClose));
   document.addEventListener('keydown', (evt) => onEscapePress(evt, onClose));
+
+  // Обработчик кнопки «Загрузить ещё»
+  elements.commentsLoaderElement.addEventListener('click', () => loadMoreComments(elements));
 }
 
 export { openPicture, closePicture, initPictureModal };
