@@ -447,7 +447,7 @@ function showErrorMessage() {
  * @param {Object} elements - элементы формы
  * @param {Event} evt - событие отправки
  */
-function onFormSubmit(elements, evt) {
+async function onFormSubmit(elements, evt) {
   evt.preventDefault();
 
   const isValid = pristine.validate();
@@ -457,17 +457,15 @@ function onFormSubmit(elements, evt) {
 
   elements.submit.disabled = true;
 
-  sendData('', new FormData(elements.form))
-    .then(() => {
-      showSuccessMessage();
-      closeForm(elements);
-    })
-    .catch(() => {
-      showErrorMessage();
-    })
-    .finally(() => {
-      elements.submit.disabled = false;
-    });
+  try {
+    await sendData('', new FormData(elements.form));
+    showSuccessMessage();
+    closeForm(elements);
+  } catch {
+    showErrorMessage();
+  } finally {
+    elements.submit.disabled = false;
+  }
 }
 
 /**
