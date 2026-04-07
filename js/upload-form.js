@@ -90,6 +90,7 @@ let currentEffect = 'none';
  */
 function getElements() {
   const form = document.querySelector(SELECTORS.form);
+
   if (!form) {
     return null;
   }
@@ -216,6 +217,7 @@ function validateHashtags(value) {
     }
 
     // Проверка на повторение
+
     const lowerHashtag = hashtag.toLowerCase();
     if (usedHashtags.has(lowerHashtag)) {
       return false;
@@ -247,16 +249,20 @@ function getHashtagErrorMessage(value) {
 
   for (const hashtag of hashtags) {
     if (!hashtagRegex.test(hashtag)) {
+
       if (hashtag === '#') {
         return 'Хэш-тег не может состоять только из одной решётки';
       }
+
       if (hashtag.length > MAX_HASHTAG_LENGTH) {
         return `Максимальная длина хэштега ${MAX_HASHTAG_LENGTH} символов`;
       }
+
       return 'Неправильный хэштег';
     }
 
     const lowerHashtag = hashtag.toLowerCase();
+
     if (usedHashtags.has(lowerHashtag)) {
       return 'Хэштеги не должны повторяться';
     }
@@ -376,6 +382,7 @@ function showSuccessMessage() {
 
   const removeMessage = () => {
     const existingMessage = document.querySelector('.success');
+
     if (existingMessage) {
       existingMessage.remove();
     }
@@ -416,6 +423,7 @@ function showErrorMessage() {
 
   const removeMessage = () => {
     const existingMessage = document.querySelector('.error');
+
     if (existingMessage) {
       existingMessage.remove();
     }
@@ -475,6 +483,7 @@ async function onFormSubmit(elements, evt) {
  */
 function onInputChange(elements, evt) {
   const file = evt.target.files[0];
+
   if (file) {
     openForm(elements, file);
   }
