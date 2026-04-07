@@ -1,4 +1,4 @@
-import { photos, generatePhotosData } from './main.js';
+import { photos, generatePhotosData } from './models/photo.js';
 
 describe('Генерация фотографий', () => {
   let generatedPhotos;
