@@ -116,15 +116,41 @@ function getElements() {
 }
 
 /**
+ * Применяет визуальный эффект к изображению
+ * @param {Object} elements - элементы формы
+ * @param {string} value - текущее значение слайдера
+ */
+function applyEffect(elements, value) {
+  const effect = EFFECTS[currentEffect];
+
+  if (currentEffect === 'none') {
+    elements.preview.style.filter = '';
+    elements.effectsPreview.forEach((preview) => {
+      preview.style.filter = '';
+    });
+  } else {
+    const filterValue = `${effect.filter}(${value}${effect.unit || ''})`;
+    elements.preview.style.filter = filterValue;
+    elements.effectsPreview.forEach((preview) => {
+      preview.style.filter = filterValue;
+    });
+  }
+}
+
+/**
  * Инициализирует слайдер noUiSlider
  * @param {Object} elements - элементы формы
  */
 function initSlider(elements) {
   if (slider) {
     slider.destroy();
+    slider = null;
   }
 
   const effect = EFFECTS[currentEffect];
+
+  elements.effectLevelValue.value = String(effect.start);
+  applyEffect(elements, String(effect.start));
 
   slider = noUiSlider.create(elements.effectLevelSlider, {
     range: {
@@ -139,16 +165,7 @@ function initSlider(elements) {
   slider.on('update', () => {
     const value = slider.get();
     elements.effectLevelValue.value = value;
-
-    if (currentEffect === 'none') {
-      elements.preview.style.filter = '';
-    } else {
-      const filterValue = `${effect.filter}(${value}${effect.unit || ''})`;
-      elements.preview.style.filter = filterValue;
-      elements.effectsPreview.forEach((preview) => {
-        preview.style.filter = filterValue;
-      });
-    }
+    applyEffect(elements, value);
   });
 }
 
