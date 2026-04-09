@@ -79,6 +79,8 @@ const EFFECTS = {
   }
 };
 
+const HASHTAG_REGEX = /^#[a-zа-яё0-9]{1,19}$/i;
+
 let pristine = null;
 let slider = null;
 let currentScale = 1;
@@ -207,33 +209,35 @@ function updateScale(elements, step) {
 }
 
 /**
+ * Парсит строку хэштегов в массив
+ * @param {string} value - значение поля хэштегов
+ * @returns {string[]} массив хэштегов
+ */
+function parseHashtags(value) {
+  return value.trim().split(/\s+/).filter((tag) => tag !== '');
+}
+
+/**
  * Проверяет валидность хэштегов
  * @param {string} value - значение поля хэштегов
  * @returns {boolean}
  */
 function validateHashtags(value) {
-  if (!value.trim()) {
+  const hashtags = parseHashtags(value);
+  if (hashtags.length === 0) {
     return true;
   }
 
-  const hashtags = value.trim().split(/\s+/).filter((tag) => tag !== '');
-
-  // Проверка на максимальное количество хэштегов
   if (hashtags.length > MAX_HASHTAGS) {
     return false;
   }
 
-  // Проверка каждого хэштега
-  const hashtagRegex = /^#[a-zа-яё0-9]{1,19}$/i;
   const usedHashtags = new Set();
 
   for (const hashtag of hashtags) {
-    // Проверка формата хэштега
-    if (!hashtagRegex.test(hashtag)) {
+    if (!HASHTAG_REGEX.test(hashtag)) {
       return false;
     }
-
-    // Проверка на повторение
 
     const lowerHashtag = hashtag.toLowerCase();
     if (usedHashtags.has(lowerHashtag)) {
@@ -251,22 +255,19 @@ function validateHashtags(value) {
  * @returns {string}
  */
 function getHashtagErrorMessage(value) {
-  if (!value.trim()) {
+  const hashtags = parseHashtags(value);
+  if (hashtags.length === 0) {
     return '';
   }
-
-  const hashtags = value.trim().split(/\s+/).filter((tag) => tag !== '');
 
   if (hashtags.length > MAX_HASHTAGS) {
     return `Нельзя указать больше ${MAX_HASHTAGS} хэштегов`;
   }
 
-  const hashtagRegex = /^#[a-zа-яё0-9]{1,19}$/i;
   const usedHashtags = new Set();
 
   for (const hashtag of hashtags) {
-    if (!hashtagRegex.test(hashtag)) {
-
+    if (!HASHTAG_REGEX.test(hashtag)) {
       if (hashtag === '#') {
         return 'Хэш-тег не может состоять только из одной решётки';
       }
@@ -279,7 +280,6 @@ function getHashtagErrorMessage(value) {
     }
 
     const lowerHashtag = hashtag.toLowerCase();
-
     if (usedHashtags.has(lowerHashtag)) {
       return 'Хэштеги не должны повторяться';
     }
@@ -386,20 +386,25 @@ function closeForm(elements) {
 }
 
 /**
- * Показывает сообщение об успехе
+ * Показывает сообщение на основе шаблона
+ * @param {string} templateId - ID шаблона
+ * @param {string} overlaySelector - CSS-селектор оверлея
+ * @param {string} buttonSelector - CSS-селектор кнопки закрытия
  */
-function showSuccessMessage() {
-  const template = document.querySelector('#success');
-  const message = template.content.cloneNode(true);
+function showMessage(templateId, overlaySelector, buttonSelector) {
+  const template = document.querySelector(templateId);
+  if (!template) {
+    return;
+  }
 
+  const message = template.content.cloneNode(true);
   document.body.appendChild(message);
 
-  const closeButton = document.querySelector('.success__button');
-  const overlay = document.querySelector('.success');
+  const closeButton = document.querySelector(buttonSelector);
+  const overlay = document.querySelector(overlaySelector);
 
   const removeMessage = () => {
-    const existingMessage = document.querySelector('.success');
-
+    const existingMessage = document.querySelector(overlaySelector);
     if (existingMessage) {
       existingMessage.remove();
     }
@@ -427,44 +432,17 @@ function showSuccessMessage() {
 }
 
 /**
+ * Показывает сообщение об успехе
+ */
+function showSuccessMessage() {
+  showMessage('#success', '.success', '.success__button');
+}
+
+/**
  * Показывает сообщение об ошибке
  */
 function showErrorMessage() {
-  const template = document.querySelector('#error');
-  const message = template.content.cloneNode(true);
-
-  document.body.appendChild(message);
-
-  const closeButton = document.querySelector('.error__button');
-  const overlay = document.querySelector('.error');
-
-  const removeMessage = () => {
-    const existingMessage = document.querySelector('.error');
-
-    if (existingMessage) {
-      existingMessage.remove();
-    }
-    document.removeEventListener('keydown', onEscapePress);
-    overlay.removeEventListener('click', onOverlayClick);
-    closeButton.removeEventListener('click', removeMessage);
-  };
-
-  function onEscapePress(evt) {
-    if (evt.key === 'Escape') {
-      evt.preventDefault();
-      removeMessage();
-    }
-  }
-
-  function onOverlayClick(evt) {
-    if (evt.target === overlay) {
-      removeMessage();
-    }
-  }
-
-  closeButton.addEventListener('click', removeMessage);
-  document.addEventListener('keydown', onEscapePress);
-  overlay.addEventListener('click', onOverlayClick);
+  showMessage('#error', '.error', '.error__button');
 }
 
 /**
