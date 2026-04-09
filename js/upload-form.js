@@ -534,8 +534,12 @@ function initUploadForm() {
   initValidation(elements);
 
   elements.input.addEventListener('change', (evt) => onInputChange(elements, evt));
-  elements.cancel.addEventListener('click', () => closeForm(elements));
+  elements.cancel.addEventListener('click', (evt) => {
+    evt.preventDefault();
+    closeForm(elements);
+  });
   elements.form.addEventListener('submit', (evt) => onFormSubmit(elements, evt));
+  elements.form.addEventListener('reset', () => closeForm(elements));
 
   elements.scaleSmaller.addEventListener('click', (evt) => onScaleSmallerClick(elements, evt));
   elements.scaleBigger.addEventListener('click', (evt) => onScaleBiggerClick(elements, evt));
