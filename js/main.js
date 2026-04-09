@@ -1,6 +1,7 @@
 // Точка входа в приложение
 
 import { getPhotos } from './api.js';
+import { renderTemplateMessage } from './utils/render-template-message.js';
 import { renderPictures } from './thumbnails.js';
 import { initGallery } from './gallery.js';
 import { initFilters } from './filters.js';
@@ -12,15 +13,7 @@ const DATA_ERROR_TEMPLATE_SELECTOR = '#data-error';
  * Показывает сообщение об ошибке загрузки данных
  */
 function showDataErrorMessage() {
-  const template = document.querySelector(DATA_ERROR_TEMPLATE_SELECTOR);
-  if (!template) {
-    return;
-  }
-
-  const message = template.content.cloneNode(true);
-  document.body.appendChild(message);
-
-  const errorElement = document.querySelector('.data-error');
+  const errorElement = renderTemplateMessage(DATA_ERROR_TEMPLATE_SELECTOR);
   if (errorElement) {
     setTimeout(() => errorElement.remove(), 5000);
   }

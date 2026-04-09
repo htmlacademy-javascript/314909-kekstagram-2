@@ -62,7 +62,7 @@ async function request(url, options = {}) {
  * @throws {ApiError} при ошибке загрузки
  */
 function getPhotos() {
-  return request(buildUrl(ENDPOINTS.PHOTOS));
+  return fetchData(ENDPOINTS.PHOTOS);
 }
 
 /**
@@ -72,10 +72,7 @@ function getPhotos() {
  * @throws {ApiError} при ошибке отправки
  */
 function uploadPhoto(formData) {
-  return request(buildUrl(ENDPOINTS.UPLOAD), {
-    method: 'POST',
-    body: formData,
-  });
+  return sendData(ENDPOINTS.UPLOAD, formData);
 }
 
 /**
