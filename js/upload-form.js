@@ -1,6 +1,6 @@
 // Модуль работы с формой загрузки изображения
 
-import { sendData } from './api.js';
+import { uploadPhoto } from './api.js';
 import {
   SCALE_STEP,
   SCALE_MIN,
@@ -461,7 +461,7 @@ async function onFormSubmit(elements, evt) {
   elements.submit.disabled = true;
 
   try {
-    await sendData('', new FormData(elements.form));
+    await uploadPhoto(new FormData(elements.form));
     showSuccessMessage();
     closeForm(elements);
   } catch {
