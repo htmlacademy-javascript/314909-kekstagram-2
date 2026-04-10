@@ -74,28 +74,25 @@ function getPhotos() {
 async function uploadPhoto(formData) {
   const url = buildUrl('');
 
-  let response;
-
   try {
-    response = await fetch(url, {
+    const response = await fetch(url, {
       method: 'POST',
       body: formData,
     });
-  } catch (networkError) {
-    throw new ApiError('Ошибка сети. Проверьте подключение к интернету.', 0);
-  }
 
-  if (!response.ok) {
-    throw new ApiError(
-      `Сервер вернул ошибку: ${response.status}`,
-      response.status
-    );
-  }
+    if (!response.ok) {
+      throw new ApiError(
+        `Сервер вернул ошибку: ${response.status}`,
+        response.status
+      );
+    }
 
-  try {
     return await response.json();
-  } catch {
-    return {};
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError('Ошибка сети. Проверьте подключение к интернету.', 0);
   }
 }
 
