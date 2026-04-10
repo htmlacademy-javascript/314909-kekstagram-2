@@ -20,10 +20,23 @@ function showDataErrorMessage() {
 }
 
 /**
+ * Показывает блок фильтров фотографий
+ */
+function showFilters() {
+  const filtersElement = document.querySelector('.img-filters');
+  if (filtersElement) {
+    filtersElement.classList.remove('img-filters--inactive');
+  }
+}
+
+/**
  * Инициализирует приложение с загруженными данными
  * @param {Array} photos - массив фотографий с сервера
  */
 function initApp(photos) {
+  // Показываем блок фильтров
+  showFilters();
+
   // Отрисовка миниатюр
   renderPictures(photos);
 

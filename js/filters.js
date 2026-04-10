@@ -1,6 +1,7 @@
 // Инициализация фильтров фотографий
 
 import { applyFilter } from './filter.js';
+import { debounce } from './utils/debounce-throttle.js';
 
 const FILTERS_FORM_SELECTOR = '.img-filters__form';
 const FILTER_BUTTON_SELECTOR = '.img-filters__button';
@@ -49,8 +50,16 @@ function initFilters(photos, onFiltersChange) {
 
   let currentFilter = 'filter-default';
 
+  // Обёртка с debounce для устранения дребезга (500 мс)
+  const debouncedFiltersChange = debounce((filteredPhotos, filterType) => {
+    onFiltersChange(filteredPhotos, filterType);
+  }, 500);
+
   filtersForm.addEventListener('click', (evt) => {
-    currentFilter = onFilterButtonClick(evt, photos, onFiltersChange, currentFilter);
+    const newFilter = onFilterButtonClick(evt, photos, debouncedFiltersChange, currentFilter);
+    if (newFilter !== currentFilter) {
+      currentFilter = newFilter;
+    }
   });
 }
 
