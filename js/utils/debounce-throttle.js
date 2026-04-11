@@ -8,9 +8,11 @@
 function debounce(callback, timeoutDelay = 500) {
   let timeoutId;
 
-  return (...rest) => {
+  return function (...rest) {
     clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => callback.apply(this, rest), timeoutDelay);
+    timeoutId = setTimeout(function () {
+      callback.apply(this, rest);
+    }, timeoutDelay);
   };
 }
 
@@ -24,7 +26,7 @@ function debounce(callback, timeoutDelay = 500) {
 function throttle(callback, delayBetweenFrames) {
   let lastTime = 0;
 
-  return (...rest) => {
+  return function (...rest) {
     const now = new Date();
 
     if (now - lastTime >= delayBetweenFrames) {

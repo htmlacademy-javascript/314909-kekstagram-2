@@ -15,7 +15,7 @@ const SELECTORS = {
   overlay: '.img-upload__overlay',
   input: '#upload-file',
   cancel: '#upload-cancel',
-  preview: '.img-upload__preview img',
+  preview: '.img-upload__preview',
   effectsPreview: '.effects__preview',
   scaleSmaller: '.scale__control--smaller',
   scaleBigger: '.scale__control--bigger',
@@ -124,15 +124,16 @@ function getElements() {
  */
 function applyEffect(elements, value) {
   const effect = EFFECTS[currentEffect];
+  const previewImg = elements.preview.querySelector('img');
 
   if (currentEffect === 'none') {
-    elements.preview.style.filter = '';
+    previewImg.style.filter = '';
     elements.effectsPreview.forEach((preview) => {
       preview.style.filter = '';
     });
   } else {
     const filterValue = `${effect.filter}(${value}${effect.unit || ''})`;
-    elements.preview.style.filter = filterValue;
+    previewImg.style.filter = filterValue;
     elements.effectsPreview.forEach((preview) => {
       preview.style.filter = filterValue;
     });
@@ -347,8 +348,9 @@ function initValidation(elements) {
  */
 function openForm(elements, file) {
   const url = URL.createObjectURL(file);
+  const previewImg = elements.preview.querySelector('img');
 
-  elements.preview.src = url;
+  previewImg.src = url;
   elements.effectsPreview.forEach((preview) => {
     preview.style.backgroundImage = `url(${url})`;
   });
@@ -377,7 +379,8 @@ function closeForm(elements) {
 
   resetScale(elements);
   currentEffect = 'none';
-  elements.preview.style.filter = '';
+  const previewImg = elements.preview.querySelector('img');
+  previewImg.style.filter = '';
   elements.effectsPreview.forEach((preview) => {
     preview.style.filter = '';
     preview.style.backgroundImage = '';

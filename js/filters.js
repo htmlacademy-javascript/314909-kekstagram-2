@@ -8,35 +8,6 @@ const FILTER_BUTTON_SELECTOR = '.img-filters__button';
 const ACTIVE_CLASS = 'img-filters__button--active';
 
 /**
- * Обрабатывает клик по кнопке фильтра
- * @param {Event} evt - событие клика
- * @param {Array} photos - массив фотографий
- * @param {Function} onFiltersChange - callback при изменении фильтра
- * @param {string} currentFilter - текущий фильтр
- * @returns {string} новый текущий фильтр
- */
-function onFilterButtonClick(evt, photos, onFiltersChange, currentFilter) {
-  const target = evt.target.closest(FILTER_BUTTON_SELECTOR);
-
-  if (!target) {
-    return currentFilter;
-  }
-
-  const filterButtons = evt.currentTarget.querySelectorAll(FILTER_BUTTON_SELECTOR);
-  filterButtons.forEach((btn) => btn.classList.remove(ACTIVE_CLASS));
-  target.classList.add(ACTIVE_CLASS);
-
-  const filterType = target.id;
-  if (filterType !== currentFilter) {
-    const filteredPhotos = applyFilter(filterType, photos);
-    onFiltersChange(filteredPhotos, filterType);
-    return filterType;
-  }
-
-  return currentFilter;
-}
-
-/**
  * Инициализирует фильтры фотографий
  * @param {Array} photos - массив фотографий
  * @param {Function} onFiltersChange - callback при изменении фильтра
@@ -51,14 +22,27 @@ function initFilters(photos, onFiltersChange) {
   let currentFilter = 'filter-default';
 
   // Обёртка с debounce для устранения дребезга (500 мс)
-  const debouncedFiltersChange = debounce((filteredPhotos, filterType) => {
+  // Фильтрация и перерисовка выполняются вместе с задержкой
+  const debouncedFiltersChange = debounce((filterType) => {
+    const filteredPhotos = applyFilter(filterType, photos);
     onFiltersChange(filteredPhotos, filterType);
   }, 500);
 
   filtersForm.addEventListener('click', (evt) => {
-    const newFilter = onFilterButtonClick(evt, photos, debouncedFiltersChange, currentFilter);
-    if (newFilter !== currentFilter) {
-      currentFilter = newFilter;
+    const target = evt.target.closest(FILTER_BUTTON_SELECTOR);
+
+    if (!target) {
+      return;
+    }
+
+    const filterButtons = evt.currentTarget.querySelectorAll(FILTER_BUTTON_SELECTOR);
+    filterButtons.forEach((btn) => btn.classList.remove(ACTIVE_CLASS));
+    target.classList.add(ACTIVE_CLASS);
+
+    const filterType = target.id;
+    if (filterType !== currentFilter) {
+      currentFilter = filterType;
+      debouncedFiltersChange(filterType);
     }
   });
 }
