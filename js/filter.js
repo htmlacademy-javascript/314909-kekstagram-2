@@ -3,48 +3,48 @@
 import { RANDOM_PHOTO_COUNT } from './constants.js';
 
 /**
- * Фильтр по умолчанию
+ * Применяет фильтр по умолчанию
  * @param {Array} photos - массив фотографий
  * @returns {Array}
  */
-function filterDefault(photos) {
+function applyDefaultFilter(photos) {
   return photos;
 }
 
 /**
- * Фильтр случайных фотографий
+ * Получает случайные фотографии
  * @param {Array} photos - массив фотографий
  * @returns {Array}
  */
-function filterRandom(photos) {
-  const result = [];
+function getRandomFiltered(photos) {
+  const randomPhotos = [];
   const usedIndices = new Set();
   const count = Math.min(RANDOM_PHOTO_COUNT, photos.length);
 
-  while (result.length < count) {
+  while (randomPhotos.length < count) {
     const index = Math.floor(Math.random() * photos.length);
     if (!usedIndices.has(index)) {
       usedIndices.add(index);
-      result.push(photos[index]);
+      randomPhotos.push(photos[index]);
     }
   }
 
-  return result;
+  return randomPhotos;
 }
 
 /**
- * Фильтр обсуждаемых фотографий
+ * Получает обсуждаемые фотографии
  * @param {Array} photos - массив фотографий
  * @returns {Array}
  */
-function filterDiscussed(photos) {
+function getDiscussedSorted(photos) {
   return [...photos].sort((a, b) => b.comments.length - a.comments.length);
 }
 
 const filters = {
-  'filter-default': filterDefault,
-  'filter-random': filterRandom,
-  'filter-discussed': filterDiscussed
+  'filter-default': applyDefaultFilter,
+  'filter-random': getRandomFiltered,
+  'filter-discussed': getDiscussedSorted
 };
 
 /**
@@ -57,4 +57,4 @@ function applyFilter(filterType, photos) {
   return filters[filterType]?.(photos) ?? photos;
 }
 
-export { applyFilter, filters, filterDefault, filterRandom, filterDiscussed };
+export { applyFilter };

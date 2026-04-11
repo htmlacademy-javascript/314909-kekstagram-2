@@ -16,24 +16,4 @@ function debounce(callback, timeoutDelay = 500) {
   };
 }
 
-/**
- * Возвращает функцию, которая вызывает callback не чаще,
- * чем один раз за delayBetweenFrames
- * @param {Function} callback - функция для вызова
- * @param {number} delayBetweenFrames - задержка в мс
- * @returns {Function}
- */
-function throttle(callback, delayBetweenFrames) {
-  let lastTime = 0;
-
-  return function (...rest) {
-    const now = new Date();
-
-    if (now - lastTime >= delayBetweenFrames) {
-      callback.apply(this, rest);
-      lastTime = now;
-    }
-  };
-}
-
-export { debounce, throttle };
+export { debounce };

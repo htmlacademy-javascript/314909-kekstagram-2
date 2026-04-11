@@ -85,6 +85,7 @@ let pristine = null;
 let slider = null;
 let currentScale = 1;
 let currentEffect = 'none';
+let escapeHandler = null;
 
 /**
  * Получает элементы формы (кэширует результат)
@@ -391,6 +392,12 @@ function closeForm(elements) {
     preview.style.backgroundImage = '';
   });
   elements.effectLevel.classList.add('hidden');
+
+  // Удаляем обработчик Escape при закрытии формы
+  if (escapeHandler) {
+    document.removeEventListener('keydown', escapeHandler);
+    escapeHandler = null;
+  }
 }
 
 /**
@@ -566,8 +573,10 @@ function initUploadForm() {
     }
   });
 
-  // Закрытие по Esc
-  document.addEventListener('keydown', (evt) => {
+  /**
+   * Обработчик нажатия клавиши Escape для закрытия формы
+   */
+  function onEscapePress(evt) {
     if (evt.key === 'Escape' && !elements.overlay.classList.contains('hidden')) {
       // Не закрываем форму, если открыто сообщение об ошибке или успехе
       if (document.querySelector('.error') || document.querySelector('.success')) {
@@ -580,7 +589,13 @@ function initUploadForm() {
         closeForm(elements);
       }
     }
-  });
+  }
+
+  // Сохраняем ссылку на обработчик для удаления
+  escapeHandler = onEscapePress;
+
+  // Закрытие по Esc
+  document.addEventListener('keydown', onEscapePress);
 }
 
 export { initUploadForm };

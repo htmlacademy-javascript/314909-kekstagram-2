@@ -78,4 +78,4 @@ function renderPictures(photos) {
   picturesContainer.appendChild(fragment);
 }
 
-export { renderPictures, clearPictures };
+export { renderPictures };

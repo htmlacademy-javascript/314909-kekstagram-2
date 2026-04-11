@@ -88,4 +88,4 @@ function uploadPhoto(formData) {
   });
 }
 
-export { getPhotos, uploadPhoto, fetchData, ApiError };
+export { getPhotos, uploadPhoto };

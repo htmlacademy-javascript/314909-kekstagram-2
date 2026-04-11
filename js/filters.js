@@ -25,7 +25,7 @@ function setActiveFilter(filterType) {
   }
 
   // Переключаем активный класс НЕМЕДЛЕННО (синхронно)
-  filterButtons.forEach((btn) => btn.classList.remove(ACTIVE_CLASS));
+  filterButtons.forEach((button) => button.classList.remove(ACTIVE_CLASS));
   const activeButton = document.getElementById(filterType);
   if (activeButton) {
     activeButton.classList.add(ACTIVE_CLASS);

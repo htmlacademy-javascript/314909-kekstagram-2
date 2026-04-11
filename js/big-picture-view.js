@@ -18,6 +18,7 @@ const COMMENTS_PER_PAGE = 5;
 let elementsCache = null;
 let currentComments = [];
 let displayedCommentsCount = 0;
+let escapeHandler = null;
 
 /**
  * Получает элементы модального окна (кэширует результат)
@@ -160,6 +161,12 @@ function closePicture() {
   // Сбрасываем состояние комментариев
   currentComments = [];
   displayedCommentsCount = 0;
+
+  // Удаляем обработчик Escape при закрытии окна
+  if (escapeHandler) {
+    document.removeEventListener('keydown', escapeHandler);
+    escapeHandler = null;
+  }
 }
 
 /**
@@ -195,27 +202,6 @@ function onOverlayClick(evt, onClose) {
 }
 
 /**
- * Обрабатывает нажатие клавиши Escape
- * @param {KeyboardEvent} evt - событие клавиатуры
- * @param {Function} onClose - callback при закрытии
- */
-function onEscapePress(evt, onClose) {
-  const elements = getElements();
-
-  if (!elements) {
-    return;
-  }
-
-  if (evt.key === 'Escape' && !elements.bigPicture.classList.contains('hidden')) {
-    evt.preventDefault();
-    closePicture();
-    if (onClose) {
-      onClose();
-    }
-  }
-}
-
-/**
  * Инициализирует обработчики закрытия
  * @param {Function} onClose - callback при закрытии
  */
@@ -226,12 +212,37 @@ function initPictureModal(onClose) {
     return;
   }
 
+  /**
+   * Обработчик нажатия клавиши Escape с удалением после срабатывания
+   */
+  function onEscapePressHandler(evt) {
+    const currentElements = getElements();
+
+    if (!currentElements) {
+      return;
+    }
+
+    if (evt.key === 'Escape' && !currentElements.bigPicture.classList.contains('hidden')) {
+      evt.preventDefault();
+      closePicture();
+
+      if (onClose) {
+        onClose();
+      }
+    }
+  }
+
+  // Сохраняем ссылку на обработчик для удаления
+  escapeHandler = onEscapePressHandler;
+
+  // Добавляем обработчик Escape
+  document.addEventListener('keydown', onEscapePressHandler);
+
   elements.cancelElement.addEventListener('click', () => onCancelClick(onClose));
   elements.bigPicture.addEventListener('click', (evt) => onOverlayClick(evt, onClose));
-  document.addEventListener('keydown', (evt) => onEscapePress(evt, onClose));
 
   // Обработчик кнопки «Загрузить ещё»
   elements.commentsLoaderElement.addEventListener('click', () => loadMoreComments(elements));
 }
 
-export { openPicture, closePicture, initPictureModal };
+export { openPicture, initPictureModal };
