@@ -3,16 +3,17 @@
  * @param {string} templateSelector - CSS-селектор шаблона
  * @returns {HTMLElement|null} корневой элемент добавленного сообщения
  */
-function renderTemplateMessage(templateSelector) {
-  const template = document.querySelector(templateSelector);
-  if (!template) {
+const renderTemplateMessage = (templateSelector) => {
+  const templateElement = document.querySelector(templateSelector);
+
+  if (!templateElement) {
     return null;
   }
 
-  const message = template.content.cloneNode(true);
-  document.body.appendChild(message);
+  const messageElement = templateElement.content.cloneNode(true);
+  document.body.appendChild(messageElement);
 
   return document.body.querySelector(templateSelector.replace('#', '.'));
-}
+};
 
 export { renderTemplateMessage };

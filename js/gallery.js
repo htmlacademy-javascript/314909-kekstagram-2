@@ -6,10 +6,10 @@ import { openPicture, initPictureModal } from './big-picture-view.js';
  * Инициализирует галерею фотографий
  * @param {Array} photos - массив фотографий
  */
-function initGallery(photos) {
-  const picturesContainer = document.querySelector('.pictures');
+const initGallery = (photos) => {
+  const picturesElement = document.querySelector('.pictures');
 
-  if (!picturesContainer) {
+  if (!picturesElement) {
     return;
   }
 
@@ -17,13 +17,13 @@ function initGallery(photos) {
   initPictureModal();
 
   // Обработчик клика на миниатюру
-  picturesContainer.addEventListener('click', (evt) => {
+  picturesElement.addEventListener('click', (evt) => {
     const pictureElement = evt.target.closest('.picture');
     if (pictureElement) {
       evt.preventDefault();
 
       // Находим индекс фотографии
-      const pictureElements = Array.from(picturesContainer.querySelectorAll('.picture'));
+      const pictureElements = Array.from(picturesElement.querySelectorAll('.picture'));
       const index = pictureElements.indexOf(pictureElement);
 
       if (index !== -1) {
@@ -31,6 +31,6 @@ function initGallery(photos) {
       }
     }
   });
-}
+};
 
 export { initGallery };
