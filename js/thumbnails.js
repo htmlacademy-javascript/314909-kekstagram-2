@@ -17,6 +17,7 @@ function initElements() {
   if (!picturesContainer) {
     picturesContainer = document.querySelector(PICTURE_SELECTOR);
   }
+
   if (!pictureTemplate) {
     pictureTemplate = document.querySelector(TEMPLATE_SELECTOR);
   }

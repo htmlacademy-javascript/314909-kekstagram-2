@@ -33,6 +33,7 @@ function initFilters(photos, onFiltersChange) {
   filterButtons.forEach((button) => {
     button.addEventListener('click', () => {
       const filterType = button.id;
+
       if (filterType === currentFilter) {
         return;
       }

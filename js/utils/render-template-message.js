@@ -5,6 +5,7 @@
  */
 function renderTemplateMessage(templateSelector) {
   const template = document.querySelector(templateSelector);
+
   if (!template) {
     return null;
   }

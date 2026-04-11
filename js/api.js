@@ -42,15 +42,12 @@ async function request(url, options = {}) {
 
   try {
     response = await fetch(url, options);
-  } catch (networkError) {
+  } catch (error) {
     throw new ApiError('Ошибка сети. Проверьте подключение к интернету.', 0);
   }
 
   if (!response.ok) {
-    throw new ApiError(
-      `Сервер вернул ошибку: ${response.status}`,
-      response.status
-    );
+    throw new ApiError(`Сервер вернул ошибку: ${response.status}`, response.status);
   }
 
   return response.json();
@@ -81,18 +78,12 @@ async function uploadPhoto(formData) {
     });
 
     if (!response.ok) {
-      throw new ApiError(
-        `Сервер вернул ошибку: ${response.status}`,
-        response.status
-      );
+      throw new ApiError(`Сервер вернул ошибку: ${response.status}`, response.status);
     }
 
     return await response.json();
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError('Ошибка сети. Проверьте подключение к интернету.', 0);
+  } catch (/** @type {Error|ApiError} */ error) {
+    throw new ApiError(error.message, error.status || 0);
   }
 }
 
@@ -106,29 +97,4 @@ function fetchData(endpoint) {
   return request(buildUrl(endpoint));
 }
 
-/**
- * Универсальная функция для POST-запросов
- * @param {string} endpoint - эндпоинт API
- * @param {Object|FormData} body - тело запроса
- * @param {Object} [options] - дополнительные опции
- * @param {Object} [options.headers] - заголовки запроса
- * @returns {Promise<Object>} ответ сервера
- * @throws {ApiError} при ошибке запроса
- */
-function sendData(endpoint, body, options = {}) {
-  const config = {
-    method: 'POST',
-    ...options,
-    body: body instanceof FormData ? body : JSON.stringify(body),
-  };
-
-  if (!(body instanceof FormData) && !config.headers) {
-    config.headers = {
-      'Content-Type': 'application/json',
-    };
-  }
-
-  return request(buildUrl(endpoint), config);
-}
-
-export { getPhotos, uploadPhoto, fetchData, sendData, ApiError };
+export { getPhotos, uploadPhoto, fetchData, ApiError };
