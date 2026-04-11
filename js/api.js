@@ -1,5 +1,4 @@
 // API для работы с сервером
-
 import { API_URL } from './constants.js';
 
 /**
@@ -7,7 +6,6 @@ import { API_URL } from './constants.js';
  */
 const ENDPOINTS = {
   PHOTOS: 'data',
-  UPLOAD: '',
 };
 
 /**
@@ -34,7 +32,7 @@ function buildUrl(endpoint) {
  * Выполняет fetch-запрос с обработкой ошибок
  * @param {string} url - URL запроса
  * @param {Object} [options] - опции fetch
- * @returns {Promise<Object>} распарсенный ответ сервера
+ * @returns {Promise} распарсенный ответ сервера
  * @throws {ApiError} при сетевой или HTTP-ошибке
  */
 async function request(url, options = {}) {
@@ -42,23 +40,30 @@ async function request(url, options = {}) {
 
   try {
     response = await fetch(url, options);
-  } catch (networkError) {
+  } catch {
     throw new ApiError('Ошибка сети. Проверьте подключение к интернету.', 0);
   }
 
   if (!response.ok) {
-    throw new ApiError(
-      `Сервер вернул ошибку: ${response.status}`,
-      response.status
-    );
+    throw new ApiError(`Сервер вернул ошибку: ${response.status}`, response.status);
   }
 
   return response.json();
 }
 
 /**
+ * Универсальная функция для GET-запросов
+ * @param {string} endpoint - эндпоинт API
+ * @returns {Promise} данные от сервера
+ * @throws {ApiError} при ошибке запроса
+ */
+function fetchData(endpoint) {
+  return request(buildUrl(endpoint));
+}
+
+/**
  * Загружает фотографии с сервера
- * @returns {Promise<Array>} массив данных фотографий
+ * @returns {Promise} массив данных фотографий
  * @throws {ApiError} при ошибке загрузки
  */
 function getPhotos() {
@@ -68,67 +73,14 @@ function getPhotos() {
 /**
  * Загружает фотографию на сервер
  * @param {FormData} formData - данные формы с файлом и описанием
- * @returns {Promise<Object>} ответ сервера
+ * @returns {Promise} ответ сервера
  * @throws {ApiError} при ошибке загрузки
  */
-async function uploadPhoto(formData) {
-  const url = buildUrl('');
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new ApiError(
-        `Сервер вернул ошибку: ${response.status}`,
-        response.status
-      );
-    }
-
-    return await response.json();
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError('Ошибка сети. Проверьте подключение к интернету.', 0);
-  }
-}
-
-/**
- * Универсальная функция для GET-запросов
- * @param {string} endpoint - эндпоинт API
- * @returns {Promise<Object>} данные от сервера
- * @throws {ApiError} при ошибке запроса
- */
-function fetchData(endpoint) {
-  return request(buildUrl(endpoint));
-}
-
-/**
- * Универсальная функция для POST-запросов
- * @param {string} endpoint - эндпоинт API
- * @param {Object|FormData} body - тело запроса
- * @param {Object} [options] - дополнительные опции
- * @param {Object} [options.headers] - заголовки запроса
- * @returns {Promise<Object>} ответ сервера
- * @throws {ApiError} при ошибке запроса
- */
-function sendData(endpoint, body, options = {}) {
-  const config = {
+function uploadPhoto(formData) {
+  return request(buildUrl(''), {
     method: 'POST',
-    ...options,
-    body: body instanceof FormData ? body : JSON.stringify(body),
-  };
-
-  if (!(body instanceof FormData) && !config.headers) {
-    config.headers = {
-      'Content-Type': 'application/json',
-    };
-  }
-
-  return request(buildUrl(endpoint), config);
+    body: formData,
+  });
 }
 
-export { getPhotos, uploadPhoto, fetchData, sendData, ApiError };
+export { getPhotos, uploadPhoto, fetchData, ApiError};
