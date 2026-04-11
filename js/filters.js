@@ -28,22 +28,22 @@ function initFilters(photos, onFiltersChange) {
     onFiltersChange(filteredPhotos, filterType);
   }, 500);
 
-  filtersForm.addEventListener('click', (evt) => {
-    const target = evt.target.closest(FILTER_BUTTON_SELECTOR);
+  const filterButtons = filtersForm.querySelectorAll(FILTER_BUTTON_SELECTOR);
 
-    if (!target) {
-      return;
-    }
+  filterButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const filterType = button.id;
+      if (filterType === currentFilter) {
+        return;
+      }
 
-    const filterButtons = evt.currentTarget.querySelectorAll(FILTER_BUTTON_SELECTOR);
-    filterButtons.forEach((btn) => btn.classList.remove(ACTIVE_CLASS));
-    target.classList.add(ACTIVE_CLASS);
-
-    const filterType = target.id;
-    if (filterType !== currentFilter) {
       currentFilter = filterType;
+
+      filterButtons.forEach((btn) => btn.classList.remove(ACTIVE_CLASS));
+      button.classList.add(ACTIVE_CLASS);
+
       debouncedFiltersChange(filterType);
-    }
+    });
   });
 }
 
