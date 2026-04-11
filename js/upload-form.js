@@ -423,6 +423,7 @@ function showMessage(templateId, overlaySelector, buttonSelector) {
   function onEscapePress(evt) {
     if (evt.key === 'Escape') {
       evt.preventDefault();
+      evt.stopPropagation();
       removeMessage();
     }
   }
@@ -566,6 +567,10 @@ function initUploadForm() {
   // Закрытие по Esc
   document.addEventListener('keydown', (evt) => {
     if (evt.key === 'Escape' && !elements.overlay.classList.contains('hidden')) {
+      // Не закрываем форму, если открыто сообщение об ошибке или успехе
+      if (document.querySelector('.error') || document.querySelector('.success')) {
+        return;
+      }
       const activeElement = document.activeElement;
       if (activeElement !== elements.hashtags && activeElement !== elements.description) {
         closeForm(elements);
