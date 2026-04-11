@@ -60,9 +60,9 @@ const applyPendingFilter = () => {
  * @param {Function} onFiltersChangeCallback - callback при изменении фильтра (опционально)
  */
 const initFilters = (photosData, onFiltersChangeCallback) => {
-  const filtersForm = document.querySelector(FILTERS_FORM_SELECTOR);
+  const filtersFormElement = document.querySelector(FILTERS_FORM_SELECTOR);
 
-  if (!filtersForm) {
+  if (!filtersFormElement) {
     return;
   }
 
@@ -82,13 +82,13 @@ const initFilters = (photosData, onFiltersChangeCallback) => {
   }
 
   // Привязываем обработчики только один раз
-  const existingButtons = filtersForm.querySelectorAll(`${FILTER_BUTTON_SELECTOR}[data-handler-attached]`);
-  if (existingButtons.length > 0) {
+  const existingButtonElements = filtersFormElement.querySelectorAll(`${FILTER_BUTTON_SELECTOR}[data-handler-attached]`);
+  if (existingButtonElements.length > 0) {
     return; // Обработчики уже привязаны
   }
 
   // Кэшируем кнопки фильтров (Д21)
-  filterButtonElements = [...filtersForm.querySelectorAll(FILTER_BUTTON_SELECTOR)];
+  filterButtonElements = [...filtersFormElement.querySelectorAll(FILTER_BUTTON_SELECTOR)];
 
   filterButtonElements.forEach((button) => {
     button.addEventListener('click', () => {

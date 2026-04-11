@@ -25,9 +25,7 @@ class ApiError extends Error {
  * @param {string} endpoint - эндпоинт
  * @returns {string} полный URL
  */
-function buildUrl(endpoint) {
-  return `${API_URL}/${endpoint}`;
-}
+const buildUrl = (endpoint) => `${API_URL}/${endpoint}`;
 
 /**
  * Выполняет fetch-запрос с обработкой ошибок
@@ -36,7 +34,7 @@ function buildUrl(endpoint) {
  * @returns {Promise<*>} ответ сервера
  * @throws {ApiError} при сетевой или HTTP-ошибке
  */
-async function request(url, options = {}) {
+const request = async (url, options = {}) => {
   let response;
 
   try {
@@ -57,35 +55,29 @@ async function request(url, options = {}) {
 
   const text = await response.text();
   return text || null;
-}
+};
 
 /**
  * Универсальная функция для GET-запросов
  * @param {string} endpoint - эндпоинт API
  * @returns {Promise<*>} данные от сервера
  */
-function fetchData(endpoint) {
-  return request(buildUrl(endpoint));
-}
+const fetchData = (endpoint) => request(buildUrl(endpoint));
 
 /**
  * Загружает фотографии с сервера
  * @returns {Promise<Array>} массив фотографий
  */
-function getPhotos() {
-  return fetchData(ENDPOINTS.PHOTOS);
-}
+const getPhotos = () => fetchData(ENDPOINTS.PHOTOS);
 
 /**
  * Загружает фотографию на сервер
  * @param {FormData} formData - данные формы
  * @returns {Promise<*>} ответ сервера
  */
-function uploadPhoto(formData) {
-  return request(buildUrl(ENDPOINTS.UPLOAD), {
-    method: 'POST',
-    body: formData,
-  });
-}
+const uploadPhoto = (formData) => request(buildUrl(ENDPOINTS.UPLOAD), {
+  method: 'POST',
+  body: formData,
+});
 
 export { getPhotos, uploadPhoto };

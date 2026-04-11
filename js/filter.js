@@ -7,9 +7,7 @@ import { RANDOM_PHOTO_COUNT } from './constants.js';
  * @param {Array} photos - массив фотографий
  * @returns {Array}
  */
-function applyDefaultFilter(photos) {
-  return photos;
-}
+const applyDefaultFilter = (photos) => photos;
 
 /**
  * Получает случайные фотографии
@@ -26,9 +24,7 @@ const getRandomFiltered = (photos) => {
  * @param {Array} photos - массив фотографий
  * @returns {Array}
  */
-function getDiscussedSorted(photos) {
-  return [...photos].sort((a, b) => b.comments.length - a.comments.length);
-}
+const getDiscussedSorted = (photos) => [...photos].sort((a, b) => b.comments.length - a.comments.length);
 
 const filters = {
   'filter-default': applyDefaultFilter,
@@ -42,8 +38,6 @@ const filters = {
  * @param {Array} photos - массив фотографий
  * @returns {Array}
  */
-function applyFilter(filterType, photos) {
-  return filters[filterType]?.(photos) ?? photos;
-}
+const applyFilter = (filterType, photos) => filters[filterType]?.(photos) ?? photos;
 
 export { applyFilter };

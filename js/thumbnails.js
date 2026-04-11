@@ -7,21 +7,21 @@ const PICTURE_IMG_SELECTOR = '.picture__img';
 const PICTURE_COMMENTS_SELECTOR = '.picture__comments';
 const PICTURE_LIKES_SELECTOR = '.picture__likes';
 
-let picturesContainer = null;
-let pictureTemplate = null;
+let picturesElement = null;
+let pictureTemplateElement = null;
 
 /**
  * Инициализирует элементы для отрисовки
  */
-function initElements() {
-  if (!picturesContainer) {
-    picturesContainer = document.querySelector(PICTURE_SELECTOR);
+const initElements = () => {
+  if (!picturesElement) {
+    picturesElement = document.querySelector(PICTURE_SELECTOR);
   }
 
-  if (!pictureTemplate) {
-    pictureTemplate = document.querySelector(TEMPLATE_SELECTOR);
+  if (!pictureTemplateElement) {
+    pictureTemplateElement = document.querySelector(TEMPLATE_SELECTOR);
   }
-}
+};
 
 /**
  * Создаёт DOM-элемент миниатюры фотографии
@@ -29,53 +29,53 @@ function initElements() {
  * @param {HTMLTemplateElement} template - шаблон миниатюры
  * @returns {HTMLElement}
  */
-function createPictureElement(photo, template) {
+const createPictureElement = (photo, template) => {
   const pictureElement = template.cloneNode(true).querySelector(PICTURE_ELEMENT_SELECTOR);
 
-  const img = pictureElement.querySelector(PICTURE_IMG_SELECTOR);
-  img.src = photo.url;
-  img.alt = photo.description;
+  const imgElement = pictureElement.querySelector(PICTURE_IMG_SELECTOR);
+  imgElement.src = photo.url;
+  imgElement.alt = photo.description;
 
   pictureElement.querySelector(PICTURE_COMMENTS_SELECTOR).textContent = photo.comments.length;
   pictureElement.querySelector(PICTURE_LIKES_SELECTOR).textContent = photo.likes;
 
   return pictureElement;
-}
+};
 
 /**
  * Очищает контейнер с фотографиями
  */
-function clearPictures() {
+const clearPictures = () => {
   initElements();
 
-  if (!picturesContainer) {
+  if (!picturesElement) {
     return;
   }
 
-  const photoElements = picturesContainer.querySelectorAll(PICTURE_ELEMENT_SELECTOR);
+  const photoElements = picturesElement.querySelectorAll(PICTURE_ELEMENT_SELECTOR);
   photoElements.forEach((element) => element.remove());
-}
+};
 
 /**
  * Отрисовывает миниатюры фотографий на странице
  * @param {Array} photos - массив фотографий
  */
-function renderPictures(photos) {
+const renderPictures = (photos) => {
   clearPictures();
   initElements();
 
-  if (!picturesContainer || !pictureTemplate) {
+  if (!picturesElement || !pictureTemplateElement) {
     return;
   }
 
-  const fragment = document.createDocumentFragment();
+  const fragmentElement = document.createDocumentFragment();
 
   photos.forEach((photo) => {
-    const pictureElement = createPictureElement(photo, pictureTemplate.content);
-    fragment.appendChild(pictureElement);
+    const pictureElement = createPictureElement(photo, pictureTemplateElement.content);
+    fragmentElement.appendChild(pictureElement);
   });
 
-  picturesContainer.appendChild(fragment);
-}
+  picturesElement.appendChild(fragmentElement);
+};
 
 export { renderPictures };
