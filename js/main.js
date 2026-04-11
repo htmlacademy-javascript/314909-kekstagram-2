@@ -54,9 +54,5 @@ initUploadForm();
 
 // Загрузка данных с сервера
 getPhotos()
-  .then((photos) => {
-    initApp(photos);
-  })
-  .catch(() => {
-    showDataErrorMessage();
-  });
+  .then((photos) => initApp(photos))
+  .catch(() => showDataErrorMessage());
