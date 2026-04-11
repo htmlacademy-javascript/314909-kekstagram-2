@@ -6,6 +6,7 @@ import { API_URL } from './constants.js';
  */
 const ENDPOINTS = {
   PHOTOS: 'data',
+  UPLOAD: '',
 };
 
 /**
@@ -32,7 +33,7 @@ function buildUrl(endpoint) {
  * Выполняет fetch-запрос с обработкой ошибок
  * @param {string} url - URL запроса
  * @param {Object} [options] - опции fetch
- * @returns {Promise} распарсенный ответ сервера
+ * @returns {Promise<*>} ответ сервера
  * @throws {ApiError} при сетевой или HTTP-ошибке
  */
 async function request(url, options = {}) {
@@ -48,14 +49,20 @@ async function request(url, options = {}) {
     throw new ApiError(`Сервер вернул ошибку: ${response.status}`, response.status);
   }
 
-  return response.json();
+  const contentType = response.headers.get('content-type');
+
+  if (contentType && contentType.includes('application/json')) {
+    return response.json();
+  }
+
+  const text = await response.text();
+  return text || null;
 }
 
 /**
  * Универсальная функция для GET-запросов
  * @param {string} endpoint - эндпоинт API
- * @returns {Promise} данные от сервера
- * @throws {ApiError} при ошибке запроса
+ * @returns {Promise<*>} данные от сервера
  */
 function fetchData(endpoint) {
   return request(buildUrl(endpoint));
@@ -63,8 +70,7 @@ function fetchData(endpoint) {
 
 /**
  * Загружает фотографии с сервера
- * @returns {Promise} массив данных фотографий
- * @throws {ApiError} при ошибке загрузки
+ * @returns {Promise<Array>} массив фотографий
  */
 function getPhotos() {
   return fetchData(ENDPOINTS.PHOTOS);
@@ -72,15 +78,14 @@ function getPhotos() {
 
 /**
  * Загружает фотографию на сервер
- * @param {FormData} formData - данные формы с файлом и описанием
- * @returns {Promise} ответ сервера
- * @throws {ApiError} при ошибке загрузки
+ * @param {FormData} formData - данные формы
+ * @returns {Promise<*>} ответ сервера
  */
 function uploadPhoto(formData) {
-  return request(buildUrl(''), {
+  return request(buildUrl(ENDPOINTS.UPLOAD), {
     method: 'POST',
     body: formData,
   });
 }
 
-export { getPhotos, uploadPhoto, fetchData, ApiError};
+export { getPhotos, uploadPhoto, fetchData, ApiError };

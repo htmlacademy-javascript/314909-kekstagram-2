@@ -128,16 +128,14 @@ function applyEffect(elements, value) {
 
   if (currentEffect === 'none') {
     previewImg.style.filter = '';
-    elements.effectsPreview.forEach((preview) => {
-      preview.style.filter = '';
-    });
-  } else {
-    const filterValue = `${effect.filter}(${value}${effect.unit || ''})`;
-    previewImg.style.filter = filterValue;
-    elements.effectsPreview.forEach((preview) => {
-      preview.style.filter = filterValue;
-    });
+    elements.effectsPreview.forEach((preview) => preview.style.filter = '');
+
+    return;
   }
+
+  const filterValue = `${effect.filter}(${value}${effect.unit || ''})`;
+  previewImg.style.filter = filterValue;
+  elements.effectsPreview.forEach((preview) => preview.style.filter = filterValue);
 }
 
 /**
@@ -147,7 +145,6 @@ function applyEffect(elements, value) {
 function initSlider(elements) {
   if (slider) {
     slider.destroy();
-    slider = null;
   }
 
   const effect = EFFECTS[currentEffect];
@@ -179,11 +176,7 @@ function initSlider(elements) {
  * @param {Object} elements - элементы формы
  */
 function updateEffectVisibility(elements) {
-  if (currentEffect === 'none') {
-    elements.effectLevel.classList.add('hidden');
-  } else {
-    elements.effectLevel.classList.remove('hidden');
-  }
+  elements.effectLevel.classList.toggle('hidden', currentEffect === 'none');
 }
 
 /**
@@ -191,9 +184,10 @@ function updateEffectVisibility(elements) {
  * @param {Object} elements - элементы формы
  */
 function resetScale(elements) {
+  const previewImg = elements.preview.querySelector('img');
+
   currentScale = 1;
   elements.scaleValue.value = '100%';
-  const previewImg = elements.preview.querySelector('img');
   previewImg.style.transform = `scale(${currentScale})`;
 }
 
@@ -206,10 +200,11 @@ function updateScale(elements, step) {
   const newScale = currentScale + step;
 
   if (newScale >= SCALE_MIN && newScale <= SCALE_MAX) {
-    currentScale = newScale;
-    elements.scaleValue.value = `${Math.round(currentScale * 100)}%`;
     const previewImg = elements.preview.querySelector('img');
+
+    currentScale = newScale;
     previewImg.style.transform = `scale(${currentScale})`;
+    elements.scaleValue.value = `${Math.round(currentScale * 100)}%`;
   }
 }
 
@@ -228,7 +223,9 @@ function parseHashtags(value) {
  * @returns {boolean}
  */
 function validateHashtags(value) {
+  const usedHashtags = new Set();
   const hashtags = parseHashtags(value);
+
   if (hashtags.length === 0) {
     return true;
   }
@@ -237,17 +234,17 @@ function validateHashtags(value) {
     return false;
   }
 
-  const usedHashtags = new Set();
-
   for (const hashtag of hashtags) {
+    const lowerHashtag = hashtag.toLowerCase();
+
     if (!HASHTAG_REGEX.test(hashtag)) {
       return false;
     }
 
-    const lowerHashtag = hashtag.toLowerCase();
     if (usedHashtags.has(lowerHashtag)) {
       return false;
     }
+
     usedHashtags.add(lowerHashtag);
   }
 
@@ -261,6 +258,7 @@ function validateHashtags(value) {
  */
 function getHashtagErrorMessage(value) {
   const hashtags = parseHashtags(value);
+
   if (hashtags.length === 0) {
     return '';
   }
@@ -272,6 +270,8 @@ function getHashtagErrorMessage(value) {
   const usedHashtags = new Set();
 
   for (const hashtag of hashtags) {
+    const lowerHashtag = hashtag.toLowerCase();
+
     if (!HASHTAG_REGEX.test(hashtag)) {
       if (hashtag === '#') {
         return 'Хэш-тег не может состоять только из одной решётки';
@@ -284,10 +284,10 @@ function getHashtagErrorMessage(value) {
       return 'Неправильный хэштег';
     }
 
-    const lowerHashtag = hashtag.toLowerCase();
     if (usedHashtags.has(lowerHashtag)) {
       return 'Хэштеги не должны повторяться';
     }
+
     usedHashtags.add(lowerHashtag);
   }
 
@@ -312,6 +312,7 @@ function getDescriptionErrorMessage(value) {
   if (value.length > MAX_DESCRIPTION_LENGTH) {
     return `Длина комментария не может превышать ${MAX_DESCRIPTION_LENGTH} символов`;
   }
+
   return '';
 }
 
@@ -530,6 +531,7 @@ function onEffectChange(elements, evt) {
  */
 function initUploadForm() {
   const elements = getElements();
+
   if (!elements) {
     return;
   }
@@ -571,7 +573,9 @@ function initUploadForm() {
       if (document.querySelector('.error') || document.querySelector('.success')) {
         return;
       }
+
       const activeElement = document.activeElement;
+
       if (activeElement !== elements.hashtags && activeElement !== elements.description) {
         closeForm(elements);
       }

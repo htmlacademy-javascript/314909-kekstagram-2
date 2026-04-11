@@ -115,6 +115,7 @@ function loadMoreComments(elements) {
  */
 function openPicture(photo) {
   const elements = getElements();
+
   if (!elements) {
     return;
   }
@@ -147,6 +148,7 @@ function openPicture(photo) {
  */
 function closePicture() {
   const elements = getElements();
+
   if (!elements) {
     return;
   }
@@ -166,6 +168,7 @@ function closePicture() {
  */
 function onCancelClick(onClose) {
   closePicture();
+
   if (onClose) {
     onClose();
   }
@@ -178,6 +181,7 @@ function onCancelClick(onClose) {
  */
 function onOverlayClick(evt, onClose) {
   const elements = getElements();
+
   if (!elements) {
     return;
   }
@@ -197,6 +201,7 @@ function onOverlayClick(evt, onClose) {
  */
 function onEscapePress(evt, onClose) {
   const elements = getElements();
+
   if (!elements) {
     return;
   }
@@ -216,6 +221,7 @@ function onEscapePress(evt, onClose) {
  */
 function initPictureModal(onClose) {
   const elements = getElements();
+
   if (!elements) {
     return;
   }
