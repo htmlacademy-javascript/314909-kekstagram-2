@@ -66,13 +66,34 @@ function getPhotos() {
 }
 
 /**
- * Отправляет форму загрузки фотографии на сервер
+ * Загружает фотографию на сервер
  * @param {FormData} formData - данные формы с файлом и описанием
  * @returns {Promise<Object>} ответ сервера
- * @throws {ApiError} при ошибке отправки
+ * @throws {ApiError} при ошибке загрузки
  */
-function uploadPhoto(formData) {
-  return sendData(ENDPOINTS.UPLOAD, formData);
+async function uploadPhoto(formData) {
+  const url = buildUrl('');
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new ApiError(
+        `Сервер вернул ошибку: ${response.status}`,
+        response.status
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError('Ошибка сети. Проверьте подключение к интернету.', 0);
+  }
 }
 
 /**

@@ -1,6 +1,6 @@
 // Модуль работы с формой загрузки изображения
 
-import { sendData } from './api.js';
+import { uploadPhoto } from './api.js';
 import {
   SCALE_STEP,
   SCALE_MIN,
@@ -15,7 +15,7 @@ const SELECTORS = {
   overlay: '.img-upload__overlay',
   input: '#upload-file',
   cancel: '#upload-cancel',
-  preview: '.img-upload__preview img',
+  preview: '.img-upload__preview',
   effectsPreview: '.effects__preview',
   scaleSmaller: '.scale__control--smaller',
   scaleBigger: '.scale__control--bigger',
@@ -124,15 +124,16 @@ function getElements() {
  */
 function applyEffect(elements, value) {
   const effect = EFFECTS[currentEffect];
+  const previewImg = elements.preview.querySelector('img');
 
   if (currentEffect === 'none') {
-    elements.preview.style.filter = '';
+    previewImg.style.filter = '';
     elements.effectsPreview.forEach((preview) => {
       preview.style.filter = '';
     });
   } else {
     const filterValue = `${effect.filter}(${value}${effect.unit || ''})`;
-    elements.preview.style.filter = filterValue;
+    previewImg.style.filter = filterValue;
     elements.effectsPreview.forEach((preview) => {
       preview.style.filter = filterValue;
     });
@@ -166,8 +167,10 @@ function initSlider(elements) {
 
   slider.on('update', () => {
     const value = slider.get();
-    elements.effectLevelValue.value = value;
-    applyEffect(elements, value);
+    // Преобразуем в число и обратно в строку, чтобы убрать лишние нули (0.50 → 0.5)
+    const numericValue = parseFloat(value);
+    elements.effectLevelValue.value = numericValue;
+    applyEffect(elements, String(numericValue));
   });
 }
 
@@ -190,7 +193,8 @@ function updateEffectVisibility(elements) {
 function resetScale(elements) {
   currentScale = 1;
   elements.scaleValue.value = '100%';
-  elements.preview.style.transform = `scale(${currentScale})`;
+  const previewImg = elements.preview.querySelector('img');
+  previewImg.style.transform = `scale(${currentScale})`;
 }
 
 /**
@@ -204,7 +208,8 @@ function updateScale(elements, step) {
   if (newScale >= SCALE_MIN && newScale <= SCALE_MAX) {
     currentScale = newScale;
     elements.scaleValue.value = `${Math.round(currentScale * 100)}%`;
-    elements.preview.style.transform = `scale(${currentScale})`;
+    const previewImg = elements.preview.querySelector('img');
+    previewImg.style.transform = `scale(${currentScale})`;
   }
 }
 
@@ -347,8 +352,9 @@ function initValidation(elements) {
  */
 function openForm(elements, file) {
   const url = URL.createObjectURL(file);
+  const previewImg = elements.preview.querySelector('img');
 
-  elements.preview.src = url;
+  previewImg.src = url;
   elements.effectsPreview.forEach((preview) => {
     preview.style.backgroundImage = `url(${url})`;
   });
@@ -377,7 +383,8 @@ function closeForm(elements) {
 
   resetScale(elements);
   currentEffect = 'none';
-  elements.preview.style.filter = '';
+  const previewImg = elements.preview.querySelector('img');
+  previewImg.style.filter = '';
   elements.effectsPreview.forEach((preview) => {
     preview.style.filter = '';
     preview.style.backgroundImage = '';
@@ -416,6 +423,7 @@ function showMessage(templateId, overlaySelector, buttonSelector) {
   function onEscapePress(evt) {
     if (evt.key === 'Escape') {
       evt.preventDefault();
+      evt.stopPropagation();
       removeMessage();
     }
   }
@@ -461,7 +469,7 @@ async function onFormSubmit(elements, evt) {
   elements.submit.disabled = true;
 
   try {
-    await sendData('', new FormData(elements.form));
+    await uploadPhoto(new FormData(elements.form));
     showSuccessMessage();
     closeForm(elements);
   } catch {
@@ -559,6 +567,10 @@ function initUploadForm() {
   // Закрытие по Esc
   document.addEventListener('keydown', (evt) => {
     if (evt.key === 'Escape' && !elements.overlay.classList.contains('hidden')) {
+      // Не закрываем форму, если открыто сообщение об ошибке или успехе
+      if (document.querySelector('.error') || document.querySelector('.success')) {
+        return;
+      }
       const activeElement = document.activeElement;
       if (activeElement !== elements.hashtags && activeElement !== elements.description) {
         closeForm(elements);
