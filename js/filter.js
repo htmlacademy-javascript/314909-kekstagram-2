@@ -16,21 +16,10 @@ function applyDefaultFilter(photos) {
  * @param {Array} photos - массив фотографий
  * @returns {Array}
  */
-function getRandomFiltered(photos) {
-  const randomPhotos = [];
-  const usedIndices = new Set();
-  const count = Math.min(RANDOM_PHOTO_COUNT, photos.length);
-
-  while (randomPhotos.length < count) {
-    const index = Math.floor(Math.random() * photos.length);
-    if (!usedIndices.has(index)) {
-      usedIndices.add(index);
-      randomPhotos.push(photos[index]);
-    }
-  }
-
-  return randomPhotos;
-}
+const getRandomFiltered = (photos) => {
+  const shuffledPhotos = [...photos].sort(() => Math.random() - 0.5);
+  return shuffledPhotos.slice(0, RANDOM_PHOTO_COUNT);
+};
 
 /**
  * Получает обсуждаемые фотографии

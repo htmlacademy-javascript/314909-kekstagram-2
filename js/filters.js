@@ -6,29 +6,29 @@ import { debounce } from './utils/debounce-throttle.js';
 const FILTERS_FORM_SELECTOR = '.img-filters__form';
 const FILTER_BUTTON_SELECTOR = '.img-filters__button';
 const ACTIVE_CLASS = 'img-filters__button--active';
+const FILTER_DEBOUNCE_DELAY = 500;
 
 let photos = null;
 let onFiltersChange = null;
 let currentFilter = 'filter-default';
 let debouncedFiltersChange = null;
 let pendingFilter = null;
+let filterButtonElements = [];
 
 /**
  * Устанавливает активный фильтр
  * @param {string} filterType - тип фильтра
  */
-function setActiveFilter(filterType) {
-  const filterButtons = document.querySelectorAll(FILTER_BUTTON_SELECTOR);
-
+const setActiveFilter = (filterType) => {
   if (filterType === currentFilter) {
     return;
   }
 
   // Переключаем активный класс НЕМЕДЛЕННО (синхронно)
-  filterButtons.forEach((button) => button.classList.remove(ACTIVE_CLASS));
-  const activeButton = document.getElementById(filterType);
-  if (activeButton) {
-    activeButton.classList.add(ACTIVE_CLASS);
+  filterButtonElements.forEach((button) => button.classList.remove(ACTIVE_CLASS));
+  const activeButtonElement = document.getElementById(filterType);
+  if (activeButtonElement) {
+    activeButtonElement.classList.add(ACTIVE_CLASS);
   }
 
   // Обновляем текущий фильтр
@@ -40,26 +40,26 @@ function setActiveFilter(filterType) {
     return;
   }
 
-  // Применяем фильтр с задержкой 500 мс (debounce)
+  // Применяем фильтр с задержкой (debounce)
   debouncedFiltersChange(filterType);
-}
+};
 
 /**
  * Применяет pending фильтр, если он есть
  */
-function applyPendingFilter() {
+const applyPendingFilter = () => {
   if (pendingFilter && photos && onFiltersChange) {
     debouncedFiltersChange(pendingFilter);
     pendingFilter = null;
   }
-}
+};
 
 /**
  * Инициализирует фильтры фотографий
  * @param {Array} photosData - массив фотографий (опционально)
  * @param {Function} onFiltersChangeCallback - callback при изменении фильтра (опционально)
  */
-function initFilters(photosData, onFiltersChangeCallback) {
+const initFilters = (photosData, onFiltersChangeCallback) => {
   const filtersForm = document.querySelector(FILTERS_FORM_SELECTOR);
 
   if (!filtersForm) {
@@ -75,7 +75,7 @@ function initFilters(photosData, onFiltersChangeCallback) {
     debouncedFiltersChange = debounce((filterType) => {
       const filteredPhotos = applyFilter(filterType, photos);
       onFiltersChange(filteredPhotos);
-    }, 500);
+    }, FILTER_DEBOUNCE_DELAY);
 
     // Применяем pending фильтр, если он был выбран до загрузки данных
     applyPendingFilter();
@@ -87,9 +87,10 @@ function initFilters(photosData, onFiltersChangeCallback) {
     return; // Обработчики уже привязаны
   }
 
-  const filterButtons = filtersForm.querySelectorAll(FILTER_BUTTON_SELECTOR);
+  // Кэшируем кнопки фильтров (Д21)
+  filterButtonElements = [...filtersForm.querySelectorAll(FILTER_BUTTON_SELECTOR)];
 
-  filterButtons.forEach((button) => {
+  filterButtonElements.forEach((button) => {
     button.addEventListener('click', () => {
       const filterType = button.id;
       setActiveFilter(filterType);
@@ -98,6 +99,6 @@ function initFilters(photosData, onFiltersChangeCallback) {
     // Помечаем кнопку как обработанную
     button.setAttribute('data-handler-attached', 'true');
   });
-}
+};
 
 export { initFilters };

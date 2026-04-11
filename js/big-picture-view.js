@@ -14,6 +14,7 @@ const SELECTORS = {
 };
 
 const COMMENTS_PER_PAGE = 5;
+const AVATAR_SIZE = 35;
 
 let elementsCache = null;
 let currentComments = [];
@@ -69,8 +70,8 @@ function renderComments(elements, comments, start, end) {
     avatarImg.classList.add('social__picture');
     avatarImg.src = comment.avatar;
     avatarImg.alt = comment.name;
-    avatarImg.width = 35;
-    avatarImg.height = 35;
+    avatarImg.width = AVATAR_SIZE;
+    avatarImg.height = AVATAR_SIZE;
 
     const commentText = document.createElement('p');
     commentText.classList.add('social__text');
@@ -170,23 +171,26 @@ function closePicture() {
 }
 
 /**
+ * Закрывает полноразмерное изображение и вызывает callback
+ * @param {Function} onClose - callback при закрытии
+ */
+const handleClose = (onClose) => {
+  closePicture();
+  onClose?.();
+};
+
+/**
  * Обрабатывает клик по кнопке закрытия
  * @param {Function} onClose - callback при закрытии
  */
-function onCancelClick(onClose) {
-  closePicture();
-
-  if (onClose) {
-    onClose();
-  }
-}
+const onCancelClick = (onClose) => handleClose(onClose);
 
 /**
  * Обрабатывает клик по оверлею
  * @param {Event} evt - событие клика
  * @param {Function} onClose - callback при закрытии
  */
-function onOverlayClick(evt, onClose) {
+const onOverlayClick = (evt, onClose) => {
   const elements = getElements();
 
   if (!elements) {
@@ -194,12 +198,9 @@ function onOverlayClick(evt, onClose) {
   }
 
   if (evt.target === elements.bigPicture) {
-    closePicture();
-    if (onClose) {
-      onClose();
-    }
+    handleClose(onClose);
   }
-}
+};
 
 /**
  * Инициализирует обработчики закрытия
@@ -213,9 +214,9 @@ function initPictureModal(onClose) {
   }
 
   /**
-   * Обработчик нажатия клавиши Escape с удалением после срабатывания
+   * Обработчик нажатия клавиши Escape
    */
-  function onEscapePressHandler(evt) {
+  function onEscapePress(evt) {
     const currentElements = getElements();
 
     if (!currentElements) {
@@ -225,18 +226,18 @@ function initPictureModal(onClose) {
     if (evt.key === 'Escape' && !currentElements.bigPicture.classList.contains('hidden')) {
       evt.preventDefault();
       closePicture();
-
-      if (onClose) {
-        onClose();
-      }
+      onClose?.();
     }
   }
 
   // Сохраняем ссылку на обработчик для удаления
-  escapeHandler = onEscapePressHandler;
+  escapeHandler = onEscapePress;
+
+  // Удаляем старый обработчик перед добавлением нового (защита от дублирования)
+  document.removeEventListener('keydown', onEscapePress);
 
   // Добавляем обработчик Escape
-  document.addEventListener('keydown', onEscapePressHandler);
+  document.addEventListener('keydown', onEscapePress);
 
   elements.cancelElement.addEventListener('click', () => onCancelClick(onClose));
   elements.bigPicture.addEventListener('click', (evt) => onOverlayClick(evt, onClose));

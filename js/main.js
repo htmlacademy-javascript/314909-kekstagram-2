@@ -7,34 +7,35 @@ import { initFilters } from './filters.js';
 import { initUploadForm } from './upload-form.js';
 
 const DATA_ERROR_TEMPLATE_SELECTOR = '#data-error';
+const ERROR_MESSAGE_TIMEOUT = 5000;
 
 /**
  * Показывает сообщение об ошибке загрузки данных
  */
-function showDataErrorMessage() {
+const showDataErrorMessage = () => {
   const errorElement = renderTemplateMessage(DATA_ERROR_TEMPLATE_SELECTOR);
 
   if (errorElement) {
-    setTimeout(() => errorElement.remove(), 5000);
+    setTimeout(() => errorElement.remove(), ERROR_MESSAGE_TIMEOUT);
   }
-}
+};
 
 /**
  * Показывает блок фильтров фотографий
  */
-function showFilters() {
+const showFilters = () => {
   const filtersElement = document.querySelector('.img-filters');
 
   if (filtersElement) {
     filtersElement.classList.remove('img-filters--inactive');
   }
-}
+};
 
 /**
  * Инициализирует приложение с загруженными данными
  * @param {Array} photos - массив фотографий с сервера
  */
-function initApp(photos) {
+const initApp = (photos) => {
   showFilters();
 
   renderPictures(photos);
@@ -43,11 +44,11 @@ function initApp(photos) {
   initFilters(photos, (filteredPhotos) => {
     renderPictures(filteredPhotos);
   });
-}
+};
 
 initUploadForm();
 initFilters(); // Инициализируем обработчики сразу
 
 getPhotos()
-  .then((photos) => initApp(photos))
-  .catch(() => showDataErrorMessage());
+  .then(initApp)
+  .catch(showDataErrorMessage);

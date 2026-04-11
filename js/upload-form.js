@@ -1,6 +1,7 @@
 // Модуль работы с формой загрузки изображения
 
 import { uploadPhoto } from './api.js';
+import { renderTemplateMessage } from './utils/render-template-message.js';
 import {
   SCALE_STEP,
   SCALE_MIN,
@@ -16,6 +17,7 @@ const SELECTORS = {
   input: '#upload-file',
   cancel: '#upload-cancel',
   preview: '.img-upload__preview',
+  previewImg: '.img-upload__preview img',
   effectsPreview: '.effects__preview',
   scaleSmaller: '.scale__control--smaller',
   scaleBigger: '.scale__control--bigger',
@@ -91,19 +93,26 @@ let escapeHandler = null;
  * Получает элементы формы (кэширует результат)
  * @returns {Object|null}
  */
-function getElements() {
+let elementsCache = null;
+
+const getElements = () => {
+  if (elementsCache) {
+    return elementsCache;
+  }
+
   const form = document.querySelector(SELECTORS.form);
 
   if (!form) {
     return null;
   }
 
-  return {
+  elementsCache = {
     form,
     overlay: form.querySelector(SELECTORS.overlay),
     input: form.querySelector(SELECTORS.input),
     cancel: form.querySelector(SELECTORS.cancel),
     preview: form.querySelector(SELECTORS.preview),
+    previewImgElement: form.querySelector(SELECTORS.previewImg),
     effectsPreview: form.querySelectorAll(SELECTORS.effectsPreview),
     scaleSmaller: form.querySelector(SELECTORS.scaleSmaller),
     scaleBigger: form.querySelector(SELECTORS.scaleBigger),
@@ -116,28 +125,36 @@ function getElements() {
     description: form.querySelector(SELECTORS.description),
     submit: form.querySelector(SELECTORS.submit)
   };
-}
+
+  return elementsCache;
+};
+
+/**
+ * Сбрасывает визуальный эффект с изображения
+ * @param {Object} elements - элементы формы
+ */
+const clearEffect = (elements) => {
+  elements.previewImgElement.style.filter = '';
+  elements.effectsPreview.forEach((preview) => preview.style.filter = '');
+};
 
 /**
  * Применяет визуальный эффект к изображению
  * @param {Object} elements - элементы формы
  * @param {string} value - текущее значение слайдера
  */
-function applyEffect(elements, value) {
+const applyEffect = (elements, value) => {
   const effect = EFFECTS[currentEffect];
-  const previewImg = elements.preview.querySelector('img');
 
   if (currentEffect === 'none') {
-    previewImg.style.filter = '';
-    elements.effectsPreview.forEach((preview) => preview.style.filter = '');
-
+    clearEffect(elements);
     return;
   }
 
   const filterValue = `${effect.filter}(${value}${effect.unit || ''})`;
-  previewImg.style.filter = filterValue;
+  elements.previewImgElement.style.filter = filterValue;
   elements.effectsPreview.forEach((preview) => preview.style.filter = filterValue);
-}
+};
 
 /**
  * Инициализирует слайдер noUiSlider
@@ -184,46 +201,69 @@ function updateEffectVisibility(elements) {
  * Сбрасывает масштаб к значению по умолчанию
  * @param {Object} elements - элементы формы
  */
-function resetScale(elements) {
-  const previewImg = elements.preview.querySelector('img');
-
+const resetScale = (elements) => {
   currentScale = 1;
   elements.scaleValue.value = '100%';
-  previewImg.style.transform = `scale(${currentScale})`;
-}
+  elements.previewImgElement.style.transform = `scale(${currentScale})`;
+};
 
 /**
  * Обновляет масштаб изображения
  * @param {Object} elements - элементы формы
  * @param {number} step - шаг изменения масштаба
  */
-function updateScale(elements, step) {
+const updateScale = (elements, step) => {
   const newScale = currentScale + step;
 
   if (newScale >= SCALE_MIN && newScale <= SCALE_MAX) {
-    const previewImg = elements.preview.querySelector('img');
-
     currentScale = newScale;
-    previewImg.style.transform = `scale(${currentScale})`;
+    elements.previewImgElement.style.transform = `scale(${currentScale})`;
     elements.scaleValue.value = `${Math.round(currentScale * 100)}%`;
   }
-}
+};
 
 /**
  * Парсит строку хэштегов в массив
  * @param {string} value - значение поля хэштегов
  * @returns {string[]} массив хэштегов
  */
-function parseHashtags(value) {
-  return value.trim().split(/\s+/).filter((tag) => tag !== '');
-}
+const parseHashtags = (value) => value.trim().split(/\s+/).filter((tag) => tag !== '');
+
+/**
+ * Результат проверки одного хэштега
+ * @param {string} hashtag - хэштег для проверки
+ * @param {Set} usedHashtags - множество уже проверенных хэштегов
+ * @returns {{isValid: boolean, error: string|null}} результат проверки
+ */
+const validateSingleHashtag = (hashtag, usedHashtags) => {
+  const lowerHashtag = hashtag.toLowerCase();
+
+  if (!HASHTAG_REGEX.test(hashtag)) {
+    if (hashtag === '#') {
+      return { isValid: false, error: 'Хэш-тег не может состоять только из одной решётки' };
+    }
+
+    if (hashtag.length > MAX_HASHTAG_LENGTH) {
+      return { isValid: false, error: `Максимальная длина хэштега ${MAX_HASHTAG_LENGTH} символов` };
+    }
+
+    return { isValid: false, error: 'Неправильный хэштег' };
+  }
+
+  if (usedHashtags.has(lowerHashtag)) {
+    return { isValid: false, error: 'Хэштеги не должны повторяться' };
+  }
+
+  usedHashtags.add(lowerHashtag);
+  return { isValid: true, error: null };
+};
 
 /**
  * Проверяет валидность хэштегов
  * @param {string} value - значение поля хэштегов
  * @returns {boolean}
  */
-function validateHashtags(value) {
+const validateHashtags = (value) => {
   const usedHashtags = new Set();
   const hashtags = parseHashtags(value);
 
@@ -236,28 +276,21 @@ function validateHashtags(value) {
   }
 
   for (const hashtag of hashtags) {
-    const lowerHashtag = hashtag.toLowerCase();
-
-    if (!HASHTAG_REGEX.test(hashtag)) {
+    const result = validateSingleHashtag(hashtag, usedHashtags);
+    if (!result.isValid) {
       return false;
     }
-
-    if (usedHashtags.has(lowerHashtag)) {
-      return false;
-    }
-
-    usedHashtags.add(lowerHashtag);
   }
 
   return true;
-}
+};
 
 /**
  * Возвращает сообщение об ошибке для хэштегов
  * @param {string} value - значение поля хэштегов
  * @returns {string}
  */
-function getHashtagErrorMessage(value) {
+const getHashtagErrorMessage = (value) => {
   const hashtags = parseHashtags(value);
 
   if (hashtags.length === 0) {
@@ -271,29 +304,14 @@ function getHashtagErrorMessage(value) {
   const usedHashtags = new Set();
 
   for (const hashtag of hashtags) {
-    const lowerHashtag = hashtag.toLowerCase();
-
-    if (!HASHTAG_REGEX.test(hashtag)) {
-      if (hashtag === '#') {
-        return 'Хэш-тег не может состоять только из одной решётки';
-      }
-
-      if (hashtag.length > MAX_HASHTAG_LENGTH) {
-        return `Максимальная длина хэштега ${MAX_HASHTAG_LENGTH} символов`;
-      }
-
-      return 'Неправильный хэштег';
+    const result = validateSingleHashtag(hashtag, usedHashtags);
+    if (!result.isValid) {
+      return result.error;
     }
-
-    if (usedHashtags.has(lowerHashtag)) {
-      return 'Хэштеги не должны повторяться';
-    }
-
-    usedHashtags.add(lowerHashtag);
   }
 
   return '';
-}
+};
 
 /**
  * Проверяет валидность комментария
@@ -352,11 +370,10 @@ function initValidation(elements) {
  * @param {Object} elements - элементы формы
  * @param {File} file - выбранный файл
  */
-function openForm(elements, file) {
+const openForm = (elements, file) => {
   const url = URL.createObjectURL(file);
-  const previewImg = elements.preview.querySelector('img');
 
-  previewImg.src = url;
+  elements.previewImgElement.src = url;
   elements.effectsPreview.forEach((preview) => {
     preview.style.backgroundImage = `url(${url})`;
   });
@@ -368,13 +385,13 @@ function openForm(elements, file) {
   currentEffect = 'none';
   elements.effectLevel.classList.add('hidden');
   initSlider(elements);
-}
+};
 
 /**
  * Закрывает форму редактирования изображения
  * @param {Object} elements - элементы формы
  */
-function closeForm(elements) {
+const closeForm = (elements) => {
   elements.overlay.classList.add('hidden');
   document.body.classList.remove('modal-open');
 
@@ -385,10 +402,8 @@ function closeForm(elements) {
 
   resetScale(elements);
   currentEffect = 'none';
-  const previewImg = elements.preview.querySelector('img');
-  previewImg.style.filter = '';
+  clearEffect(elements);
   elements.effectsPreview.forEach((preview) => {
-    preview.style.filter = '';
     preview.style.backgroundImage = '';
   });
   elements.effectLevel.classList.add('hidden');
@@ -398,7 +413,7 @@ function closeForm(elements) {
     document.removeEventListener('keydown', escapeHandler);
     escapeHandler = null;
   }
-}
+};
 
 /**
  * Показывает сообщение на основе шаблона
@@ -406,60 +421,58 @@ function closeForm(elements) {
  * @param {string} overlaySelector - CSS-селектор оверлея
  * @param {string} buttonSelector - CSS-селектор кнопки закрытия
  */
-function showMessage(templateId, overlaySelector, buttonSelector) {
-  const template = document.querySelector(templateId);
-  if (!template) {
+const showMessage = (templateId, overlaySelector, buttonSelector) => {
+  const messageElement = renderTemplateMessage(templateId);
+  if (!messageElement) {
     return;
   }
-
-  const message = template.content.cloneNode(true);
-  document.body.appendChild(message);
 
   const closeButton = document.querySelector(buttonSelector);
   const overlay = document.querySelector(overlaySelector);
 
+  let onEscapePress = null;
+  let onOverlayClickFn = null;
+
   const removeMessage = () => {
     const existingMessage = document.querySelector(overlaySelector);
-    if (existingMessage) {
-      existingMessage.remove();
+    existingMessage?.remove();
+    if (onEscapePress) {
+      document.removeEventListener('keydown', onEscapePress);
     }
-    document.removeEventListener('keydown', onEscapePress);
-    overlay.removeEventListener('click', onOverlayClick);
+    if (onOverlayClickFn) {
+      overlay.removeEventListener('click', onOverlayClickFn);
+    }
     closeButton.removeEventListener('click', removeMessage);
   };
 
-  function onEscapePress(evt) {
+  onEscapePress = (evt) => {
     if (evt.key === 'Escape') {
       evt.preventDefault();
       evt.stopPropagation();
       removeMessage();
     }
-  }
+  };
 
-  function onOverlayClick(evt) {
+  onOverlayClickFn = (evt) => {
     if (evt.target === overlay) {
       removeMessage();
     }
-  }
+  };
 
   closeButton.addEventListener('click', removeMessage);
   document.addEventListener('keydown', onEscapePress);
-  overlay.addEventListener('click', onOverlayClick);
-}
+  overlay.addEventListener('click', onOverlayClickFn);
+};
 
 /**
  * Показывает сообщение об успехе
  */
-function showSuccessMessage() {
-  showMessage('#success', '.success', '.success__button');
-}
+const showSuccessMessage = () => showMessage('#success', '.success', '.success__button');
 
 /**
  * Показывает сообщение об ошибке
  */
-function showErrorMessage() {
-  showMessage('#error', '.error', '.error__button');
-}
+const showErrorMessage = () => showMessage('#error', '.error', '.error__button');
 
 /**
  * Обрабатывает отправку формы
@@ -560,18 +573,15 @@ function initUploadForm() {
     radio.addEventListener('change', (evt) => onEffectChange(elements, evt));
   });
 
-  // Блокировка закрытия формы при фокусе на полях ввода
-  elements.hashtags.addEventListener('keydown', (evt) => {
+  // Единый обработчик для блокировки закрытия формы при фокусе на полях ввода (Д24)
+  const onInputFieldEscape = (evt) => {
     if (evt.key === 'Escape') {
       evt.stopPropagation();
     }
-  });
+  };
 
-  elements.description.addEventListener('keydown', (evt) => {
-    if (evt.key === 'Escape') {
-      evt.stopPropagation();
-    }
-  });
+  elements.hashtags.addEventListener('keydown', onInputFieldEscape);
+  elements.description.addEventListener('keydown', onInputFieldEscape);
 
   /**
    * Обработчик нажатия клавиши Escape для закрытия формы
@@ -593,6 +603,9 @@ function initUploadForm() {
 
   // Сохраняем ссылку на обработчик для удаления
   escapeHandler = onEscapePress;
+
+  // Удаляем старый обработчик перед добавлением нового (защита от дублирования)
+  document.removeEventListener('keydown', onEscapePress);
 
   // Закрытие по Esc
   document.addEventListener('keydown', onEscapePress);
