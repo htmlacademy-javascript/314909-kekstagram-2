@@ -167,8 +167,10 @@ function initSlider(elements) {
 
   slider.on('update', () => {
     const value = slider.get();
-    elements.effectLevelValue.value = value;
-    applyEffect(elements, value);
+    // Преобразуем в число и обратно в строку, чтобы убрать лишние нули (0.50 → 0.5)
+    const numericValue = parseFloat(value);
+    elements.effectLevelValue.value = numericValue;
+    applyEffect(elements, String(numericValue));
   });
 }
 
@@ -191,7 +193,8 @@ function updateEffectVisibility(elements) {
 function resetScale(elements) {
   currentScale = 1;
   elements.scaleValue.value = '100%';
-  elements.preview.style.transform = `scale(${currentScale})`;
+  const previewImg = elements.preview.querySelector('img');
+  previewImg.style.transform = `scale(${currentScale})`;
 }
 
 /**
@@ -205,7 +208,8 @@ function updateScale(elements, step) {
   if (newScale >= SCALE_MIN && newScale <= SCALE_MAX) {
     currentScale = newScale;
     elements.scaleValue.value = `${Math.round(currentScale * 100)}%`;
-    elements.preview.style.transform = `scale(${currentScale})`;
+    const previewImg = elements.preview.querySelector('img');
+    previewImg.style.transform = `scale(${currentScale})`;
   }
 }
 
