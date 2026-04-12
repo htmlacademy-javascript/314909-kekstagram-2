@@ -171,12 +171,6 @@ const closePicture = () => {
   // Сбрасываем состояние комментариев
   currentComments = [];
   displayedCommentsCount = 0;
-
-  // Удаляем обработчик Escape при закрытии окна
-  if (escapeHandler) {
-    document.removeEventListener('keydown', escapeHandler);
-    escapeHandler = null;
-  }
 };
 
 /**
