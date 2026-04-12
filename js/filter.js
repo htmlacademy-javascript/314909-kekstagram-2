@@ -14,7 +14,7 @@ const applyDefaultFilter = (photos) => photos;
  * @param {Array} photos - массив фотографий
  * @returns {Array}
  */
-const getRandomFiltered = (photos) => {
+const getRandomPhotos = (photos) => {
   const shuffledPhotos = [...photos].sort(() => Math.random() - 0.5);
   return shuffledPhotos.slice(0, RANDOM_PHOTO_COUNT);
 };
@@ -24,12 +24,12 @@ const getRandomFiltered = (photos) => {
  * @param {Array} photos - массив фотографий
  * @returns {Array}
  */
-const getDiscussedSorted = (photos) => [...photos].sort((a, b) => b.comments.length - a.comments.length);
+const getDiscussedPhotos = (photos) => [...photos].sort((a, b) => b.comments.length - a.comments.length);
 
 const filters = {
   'filter-default': applyDefaultFilter,
-  'filter-random': getRandomFiltered,
-  'filter-discussed': getDiscussedSorted
+  'filter-random': getRandomPhotos,
+  'filter-discussed': getDiscussedPhotos
 };
 
 /**

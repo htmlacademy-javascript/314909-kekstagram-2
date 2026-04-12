@@ -264,59 +264,46 @@ const validateSingleHashtag = (hashtag, usedHashtags) => {
 };
 
 /**
- * Проверяет валидность хэштегов
+ * Результат проверки хэштегов
  * @param {string} value - значение поля хэштегов
- * @returns {boolean}
+ * @returns {{isValid: boolean, error: string|null}} результат проверки
  */
-const validateHashtags = (value) => {
-  const usedHashtags = new Set();
+const validateHashtagsWithResult = (value) => {
   const hashtags = parseHashtags(value);
 
   if (hashtags.length === 0) {
-    return true;
+    return { isValid: true, error: null };
   }
 
   if (hashtags.length > MAX_HASHTAGS) {
-    return false;
+    return { isValid: false, error: `Нельзя указать больше ${MAX_HASHTAGS} хэштегов` };
   }
+
+  const usedHashtags = new Set();
 
   for (const hashtag of hashtags) {
     const result = validateSingleHashtag(hashtag, usedHashtags);
     if (!result.isValid) {
-      return false;
+      return { isValid: false, error: result.error };
     }
   }
 
-  return true;
+  return { isValid: true, error: null };
 };
+
+/**
+ * Проверяет валидность хэштегов
+ * @param {string} value - значение поля хэштегов
+ * @returns {boolean}
+ */
+const validateHashtags = (value) => validateHashtagsWithResult(value).isValid;
 
 /**
  * Возвращает сообщение об ошибке для хэштегов
  * @param {string} value - значение поля хэштегов
  * @returns {string}
  */
-const getHashtagErrorMessage = (value) => {
-  const hashtags = parseHashtags(value);
-
-  if (hashtags.length === 0) {
-    return '';
-  }
-
-  if (hashtags.length > MAX_HASHTAGS) {
-    return `Нельзя указать больше ${MAX_HASHTAGS} хэштегов`;
-  }
-
-  const usedHashtags = new Set();
-
-  for (const hashtag of hashtags) {
-    const result = validateSingleHashtag(hashtag, usedHashtags);
-    if (!result.isValid) {
-      return result.error;
-    }
-  }
-
-  return '';
-};
+const getHashtagErrorMessage = (value) => validateHashtagsWithResult(value).error || '';
 
 /**
  * Проверяет валидность комментария
@@ -549,41 +536,61 @@ const onEffectChange = (elements, evt) => {
 };
 
 /**
- * Инициализирует обработчики формы
+ * Создаёт и возвращает объект обработчиков формы
+ * @param {Object} elements - элементы формы
+ * @returns {Object} объект обработчиков
  */
-const initUploadForm = () => {
-  const elements = getElements();
+const createFormHandlers = (elements) => {
+  /**
+   * Обработчик изменения поля загрузки файла (Д4)
+   */
+  const onInputElementChange = (evt) => onInputChange(elements, evt);
 
-  if (!elements) {
-    return;
-  }
-
-  initValidation(elements);
-
-  elements.inputElement.addEventListener('change', (evt) => onInputChange(elements, evt));
-  elements.cancelElement.addEventListener('click', (evt) => {
+  /**
+   * Обработчик клика по кнопке отмены (Д4)
+   */
+  const onCancelElementClick = (evt) => {
     evt.preventDefault();
     closeForm(elements);
-  });
-  elements.formElement.addEventListener('submit', (evt) => onFormSubmit(elements, evt));
-  elements.formElement.addEventListener('reset', () => closeForm(elements));
+  };
 
-  elements.scaleSmallerElement.addEventListener('click', (evt) => onScaleSmallerClick(elements, evt));
-  elements.scaleBiggerElement.addEventListener('click', (evt) => onScaleBiggerClick(elements, evt));
+  /**
+   * Обработчик отправки формы (Д4)
+   */
+  const onFormElementSubmit = (evt) => onFormSubmit(elements, evt);
 
-  elements.effectsRadioElements.forEach((radio) => {
-    radio.addEventListener('change', (evt) => onEffectChange(elements, evt));
-  });
+  /**
+   * Обработчик сброса формы (Д4)
+   */
+  const onFormElementReset = () => closeForm(elements);
 
+  /**
+   * Обработчик клика по кнопке уменьшения масштаба (Д4)
+   */
+  const onScaleSmallerElementClick = (evt) => onScaleSmallerClick(elements, evt);
+
+  /**
+   * Обработчик клика по кнопке увеличения масштаба (Д4)
+   */
+  const onScaleBiggerElementClick = (evt) => onScaleBiggerClick(elements, evt);
+
+  /**
+   * Обработчик изменения эффекта (Д4)
+   */
+  const onRadioElementChange = (evt) => onEffectChange(elements, evt);
+
+  /**
+   * Обработчик нажатия Escape на полях ввода (Д4, Д24)
+   */
   const onInputFieldEscape = (evt) => {
     if (evt.key === 'Escape') {
       evt.stopPropagation();
     }
   };
 
-  elements.hashtagsElement.addEventListener('keydown', onInputFieldEscape);
-  elements.descriptionElement.addEventListener('keydown', onInputFieldEscape);
-
+  /**
+   * Обработчик нажатия Escape для закрытия формы (Д4)
+   */
   const onEscapePress = (evt) => {
     if (evt.key === 'Escape' && !elements.overlayElement.classList.contains('hidden')) {
       if (document.querySelector('.error') || document.querySelector('.success')) {
@@ -598,11 +605,61 @@ const initUploadForm = () => {
     }
   };
 
-  escapeHandler = onEscapePress;
+  return {
+    onInputElementChange,
+    onCancelElementClick,
+    onFormElementSubmit,
+    onFormElementReset,
+    onScaleSmallerElementClick,
+    onScaleBiggerElementClick,
+    onRadioElementChange,
+    onInputFieldEscape,
+    onEscapePress
+  };
+};
 
-  document.removeEventListener('keydown', onEscapePress);
+/**
+ * Привязывает обработчики к элементам формы
+ * @param {Object} elements - элементы формы
+ * @param {Object} handlers - объект обработчиков
+ */
+const bindFormEvents = (elements, handlers) => {
+  elements.inputElement.addEventListener('change', handlers.onInputElementChange);
+  elements.cancelElement.addEventListener('click', handlers.onCancelElementClick);
+  elements.formElement.addEventListener('submit', handlers.onFormElementSubmit);
+  elements.formElement.addEventListener('reset', handlers.onFormElementReset);
 
-  document.addEventListener('keydown', onEscapePress);
+  elements.scaleSmallerElement.addEventListener('click', handlers.onScaleSmallerElementClick);
+  elements.scaleBiggerElement.addEventListener('click', handlers.onScaleBiggerElementClick);
+
+  elements.effectsRadioElements.forEach((radio) => {
+    radio.addEventListener('change', handlers.onRadioElementChange);
+  });
+
+  elements.hashtagsElement.addEventListener('keydown', handlers.onInputFieldEscape);
+  elements.descriptionElement.addEventListener('keydown', handlers.onInputFieldEscape);
+
+  escapeHandler = handlers.onEscapePress;
+
+  document.removeEventListener('keydown', handlers.onEscapePress);
+
+  document.addEventListener('keydown', handlers.onEscapePress);
+};
+
+/**
+ * Инициализирует обработчики формы
+ */
+const initUploadForm = () => {
+  const elements = getElements();
+
+  if (!elements) {
+    return;
+  }
+
+  initValidation(elements);
+
+  const handlers = createFormHandlers(elements);
+  bindFormEvents(elements, handlers);
 };
 
 export { initUploadForm };

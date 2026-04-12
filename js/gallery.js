@@ -16,8 +16,10 @@ const initGallery = (photos) => {
   // Инициализация модального окна
   initPictureModal();
 
-  // Обработчик клика на миниатюру
-  picturesElement.addEventListener('click', (evt) => {
+  /**
+   * Обработчик клика на миниатюру (Д4)
+   */
+  const onPicturesElementClick = (evt) => {
     const pictureElement = evt.target.closest('.picture');
     if (pictureElement) {
       evt.preventDefault();
@@ -30,7 +32,9 @@ const initGallery = (photos) => {
         openPicture(photos[index]);
       }
     }
-  });
+  };
+
+  picturesElement.addEventListener('click', onPicturesElementClick);
 };
 
 export { initGallery };

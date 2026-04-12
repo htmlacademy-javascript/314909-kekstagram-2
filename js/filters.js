@@ -7,6 +7,7 @@ const FILTERS_FORM_SELECTOR = '.img-filters__form';
 const FILTER_BUTTON_SELECTOR = '.img-filters__button';
 const ACTIVE_CLASS = 'img-filters__button--active';
 const FILTER_DEBOUNCE_DELAY = 500;
+const HANDLER_ATTACHED_ATTR = 'data-handler-attached';
 
 let photos = null;
 let onFiltersChange = null;
@@ -55,34 +56,17 @@ const applyPendingFilter = () => {
 };
 
 /**
- * Инициализирует фильтры фотографий
- * @param {Array} photosData - массив фотографий (опционально)
- * @param {Function} onFiltersChangeCallback - callback при изменении фильтра (опционально)
+ * Инициализирует кнопки фильтров (навешивает обработчики)
  */
-const initFilters = (photosData, onFiltersChangeCallback) => {
+const initFilterButtons = () => {
   const filtersFormElement = document.querySelector(FILTERS_FORM_SELECTOR);
 
   if (!filtersFormElement) {
     return;
   }
 
-  // Если переданы данные, сохраняем их
-  if (photosData && onFiltersChangeCallback) {
-    photos = photosData;
-    onFiltersChange = onFiltersChangeCallback;
-
-    // Инициализируем debounce
-    debouncedFiltersChange = debounce((filterType) => {
-      const filteredPhotos = applyFilter(filterType, photos);
-      onFiltersChange(filteredPhotos);
-    }, FILTER_DEBOUNCE_DELAY);
-
-    // Применяем pending фильтр, если он был выбран до загрузки данных
-    applyPendingFilter();
-  }
-
   // Привязываем обработчики только один раз
-  const existingButtonElements = filtersFormElement.querySelectorAll(`${FILTER_BUTTON_SELECTOR}[data-handler-attached]`);
+  const existingButtonElements = filtersFormElement.querySelectorAll(`${FILTER_BUTTON_SELECTOR}[${HANDLER_ATTACHED_ATTR}]`);
   if (existingButtonElements.length > 0) {
     return; // Обработчики уже привязаны
   }
@@ -90,15 +74,54 @@ const initFilters = (photosData, onFiltersChangeCallback) => {
   // Кэшируем кнопки фильтров (Д21)
   filterButtonElements = [...filtersFormElement.querySelectorAll(FILTER_BUTTON_SELECTOR)];
 
+  /**
+   * Обработчик клика по кнопке фильтра (Д4)
+   */
+  const onFilterButtonClick = (evt) => {
+    const filterType = evt.target.id;
+    setActiveFilter(filterType);
+  };
+
   filterButtonElements.forEach((button) => {
-    button.addEventListener('click', () => {
-      const filterType = button.id;
-      setActiveFilter(filterType);
-    });
+    button.addEventListener('click', onFilterButtonClick);
 
     // Помечаем кнопку как обработанную
-    button.setAttribute('data-handler-attached', 'true');
+    button.setAttribute(HANDLER_ATTACHED_ATTR, 'true');
   });
 };
 
-export { initFilters };
+/**
+ * Устанавливает данные и callback для фильтрации
+ * @param {Array} photosData - массив фотографий
+ * @param {Function} onFiltersChangeCallback - callback при изменении фильтра
+ */
+const setFilterData = (photosData, onFiltersChangeCallback) => {
+  photos = photosData;
+  onFiltersChange = onFiltersChangeCallback;
+
+  // Инициализируем debounce
+  debouncedFiltersChange = debounce((filterType) => {
+    const filteredPhotos = applyFilter(filterType, photos);
+    onFiltersChange(filteredPhotos);
+  }, FILTER_DEBOUNCE_DELAY);
+
+  // Применяем pending фильтр, если он был выбран до загрузки данных
+  applyPendingFilter();
+};
+
+/**
+ * Инициализирует фильтры фотографий
+ * @param {Array} photosData - массив фотографий (опционально)
+ * @param {Function} onFiltersChangeCallback - callback при изменении фильтра (опционально)
+ */
+const initFilters = (photosData, onFiltersChangeCallback) => {
+  // Если переданы данные, сохраняем их
+  if (photosData && onFiltersChangeCallback) {
+    setFilterData(photosData, onFiltersChangeCallback);
+  }
+
+  // Инициализируем кнопки фильтров
+  initFilterButtons();
+};
+
+export { initFilters, initFilterButtons };

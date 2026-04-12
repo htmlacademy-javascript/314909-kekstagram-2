@@ -5,15 +5,15 @@
  * @param {number} timeoutDelay - задержка в мс
  * @returns {Function}
  */
-function debounce(callback, timeoutDelay = 500) {
+const debounce = (callback, timeoutDelay = 500) => {
   let timeoutId;
 
-  return function (...rest) {
+  return (...rest) => {
     clearTimeout(timeoutId);
-    timeoutId = setTimeout(function () {
-      callback.apply(this, rest);
+    timeoutId = setTimeout(() => {
+      callback(...rest);
     }, timeoutDelay);
   };
-}
+};
 
 export { debounce };

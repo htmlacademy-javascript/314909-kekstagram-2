@@ -20,6 +20,7 @@ let elementsCache = null;
 let currentComments = [];
 let displayedCommentsCount = 0;
 let escapeHandler = null;
+let isModalInitialized = false;
 
 /**
  * Получает элементы модального окна (кэширует результат)
@@ -112,6 +113,14 @@ const loadMoreComments = (elements) => {
 };
 
 /**
+ * Очищает контейнер комментариев
+ * @param {Object} elements - элементы модального окна
+ */
+const clearComments = (elements) => {
+  elements.commentsElement.innerHTML = '';
+};
+
+/**
  * Открывает полноразмерное изображение
  * @param {Object} photo - объект фотографии
  */
@@ -132,7 +141,7 @@ const openPicture = (photo) => {
 
   elements.commentTotalElement.textContent = photo.comments.length;
 
-  elements.commentsElement.innerHTML = '';
+  clearComments(elements);
 
   // Показываем блоки счётчика и загрузки
   elements.commentCountElement.classList.remove('hidden');
@@ -157,7 +166,7 @@ const closePicture = () => {
 
   elements.bigPictureElement.classList.add('hidden');
   document.body.classList.remove('modal-open');
-  elements.commentsElement.innerHTML = '';
+  clearComments(elements);
 
   // Сбрасываем состояние комментариев
   currentComments = [];
@@ -178,12 +187,6 @@ const handleClose = (onClose) => {
   closePicture();
   onClose?.();
 };
-
-/**
- * Обрабатывает клик по кнопке закрытия
- * @param {Function} onClose - callback при закрытии
- */
-const onCancelClick = (onClose) => handleClose(onClose);
 
 /**
  * Обрабатывает клик по оверлею
@@ -207,10 +210,21 @@ const onOverlayClick = (evt, onClose) => {
  * @param {Function} onClose - callback при закрытии
  */
 const initPictureModal = (onClose) => {
+  // Защита от дублирования обработчиков (Д28)
+  if (isModalInitialized) {
+    return;
+  }
+  isModalInitialized = true;
+
   const elements = getElements();
 
   if (!elements) {
     return;
+  }
+
+  // Сначала удаляем старый обработчик Escape (Б26)
+  if (escapeHandler) {
+    document.removeEventListener('keydown', escapeHandler);
   }
 
   /**
@@ -233,17 +247,17 @@ const initPictureModal = (onClose) => {
   // Сохраняем ссылку на обработчик для удаления
   escapeHandler = onEscapePress;
 
-  // Удаляем старый обработчик перед добавлением нового (защита от дублирования)
-  document.removeEventListener('keydown', onEscapePress);
-
   // Добавляем обработчик Escape
   document.addEventListener('keydown', onEscapePress);
 
-  elements.cancelElement.addEventListener('click', () => onCancelClick(onClose));
-  elements.bigPictureElement.addEventListener('click', (evt) => onOverlayClick(evt, onClose));
+  /**
+   * Обработчик клика по кнопке «Загрузить ещё» (Д4)
+   */
+  const onCommentsLoaderClick = () => loadMoreComments(elements);
 
-  // Обработчик кнопки «Загрузить ещё»
-  elements.commentsLoaderElement.addEventListener('click', () => loadMoreComments(elements));
+  elements.cancelElement.addEventListener('click', () => handleClose(onClose));
+  elements.bigPictureElement.addEventListener('click', (evt) => onOverlayClick(evt, onClose));
+  elements.commentsLoaderElement.addEventListener('click', onCommentsLoaderClick);
 };
 
 export { openPicture, initPictureModal };
