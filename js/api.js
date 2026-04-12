@@ -1,5 +1,4 @@
 // API для работы с сервером
-
 import { API_URL } from './constants.js';
 
 /**
@@ -26,23 +25,21 @@ class ApiError extends Error {
  * @param {string} endpoint - эндпоинт
  * @returns {string} полный URL
  */
-function buildUrl(endpoint) {
-  return `${API_URL}/${endpoint}`;
-}
+const buildUrl = (endpoint) => `${API_URL}/${endpoint}`;
 
 /**
  * Выполняет fetch-запрос с обработкой ошибок
  * @param {string} url - URL запроса
  * @param {Object} [options] - опции fetch
- * @returns {Promise<Object>} распарсенный ответ сервера
+ * @returns {Promise<*>} ответ сервера
  * @throws {ApiError} при сетевой или HTTP-ошибке
  */
-async function request(url, options = {}) {
+const request = async (url, options = {}) => {
   let response;
 
   try {
     response = await fetch(url, options);
-  } catch (error) {
+  } catch {
     throw new ApiError('Ошибка сети. Проверьте подключение к интернету.', 0);
   }
 
@@ -50,51 +47,37 @@ async function request(url, options = {}) {
     throw new ApiError(`Сервер вернул ошибку: ${response.status}`, response.status);
   }
 
-  return response.json();
-}
+  const contentType = response.headers.get('content-type');
 
-/**
- * Загружает фотографии с сервера
- * @returns {Promise<Array>} массив данных фотографий
- * @throws {ApiError} при ошибке загрузки
- */
-function getPhotos() {
-  return fetchData(ENDPOINTS.PHOTOS);
-}
-
-/**
- * Загружает фотографию на сервер
- * @param {FormData} formData - данные формы с файлом и описанием
- * @returns {Promise<Object>} ответ сервера
- * @throws {ApiError} при ошибке загрузки
- */
-async function uploadPhoto(formData) {
-  const url = buildUrl('');
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new ApiError(`Сервер вернул ошибку: ${response.status}`, response.status);
-    }
-
-    return await response.json();
-  } catch (/** @type {Error|ApiError} */ error) {
-    throw new ApiError(error.message, error.status || 0);
+  if (contentType && contentType.includes('application/json')) {
+    return response.json();
   }
-}
+
+  const text = await response.text();
+  return text || null;
+};
 
 /**
  * Универсальная функция для GET-запросов
  * @param {string} endpoint - эндпоинт API
- * @returns {Promise<Object>} данные от сервера
- * @throws {ApiError} при ошибке запроса
+ * @returns {Promise<*>} данные от сервера
  */
-function fetchData(endpoint) {
-  return request(buildUrl(endpoint));
-}
+const fetchData = (endpoint) => request(buildUrl(endpoint));
 
-export { getPhotos, uploadPhoto, fetchData, ApiError };
+/**
+ * Загружает фотографии с сервера
+ * @returns {Promise<Array>} массив фотографий
+ */
+const getPhotos = () => fetchData(ENDPOINTS.PHOTOS);
+
+/**
+ * Загружает фотографию на сервер
+ * @param {FormData} formData - данные формы
+ * @returns {Promise<*>} ответ сервера
+ */
+const uploadPhoto = (formData) => request(buildUrl(ENDPOINTS.UPLOAD), {
+  method: 'POST',
+  body: formData,
+});
+
+export { getPhotos, uploadPhoto };

@@ -3,48 +3,33 @@
 import { RANDOM_PHOTO_COUNT } from './constants.js';
 
 /**
- * Фильтр по умолчанию
+ * Применяет фильтр по умолчанию
  * @param {Array} photos - массив фотографий
  * @returns {Array}
  */
-function filterDefault(photos) {
-  return photos;
-}
+const applyDefaultFilter = (photos) => photos;
 
 /**
- * Фильтр случайных фотографий
+ * Получает случайные фотографии
  * @param {Array} photos - массив фотографий
  * @returns {Array}
  */
-function filterRandom(photos) {
-  const result = [];
-  const usedIndices = new Set();
-  const count = Math.min(RANDOM_PHOTO_COUNT, photos.length);
-
-  while (result.length < count) {
-    const index = Math.floor(Math.random() * photos.length);
-    if (!usedIndices.has(index)) {
-      usedIndices.add(index);
-      result.push(photos[index]);
-    }
-  }
-
-  return result;
-}
+const getRandomPhotos = (photos) => {
+  const shuffledPhotos = [...photos].sort(() => Math.random() - 0.5);
+  return shuffledPhotos.slice(0, RANDOM_PHOTO_COUNT);
+};
 
 /**
- * Фильтр обсуждаемых фотографий
+ * Получает обсуждаемые фотографии
  * @param {Array} photos - массив фотографий
  * @returns {Array}
  */
-function filterDiscussed(photos) {
-  return [...photos].sort((a, b) => b.comments.length - a.comments.length);
-}
+const getDiscussedPhotos = (photos) => [...photos].sort((a, b) => b.comments.length - a.comments.length);
 
 const filters = {
-  'filter-default': filterDefault,
-  'filter-random': filterRandom,
-  'filter-discussed': filterDiscussed
+  'filter-default': applyDefaultFilter,
+  'filter-random': getRandomPhotos,
+  'filter-discussed': getDiscussedPhotos
 };
 
 /**
@@ -53,8 +38,6 @@ const filters = {
  * @param {Array} photos - массив фотографий
  * @returns {Array}
  */
-function applyFilter(filterType, photos) {
-  return filters[filterType]?.(photos) ?? photos;
-}
+const applyFilter = (filterType, photos) => filters[filterType]?.(photos) ?? photos;
 
-export { applyFilter, filters, filterDefault, filterRandom, filterDiscussed };
+export { applyFilter };
