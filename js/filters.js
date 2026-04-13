@@ -78,7 +78,7 @@ const initFilterButtons = () => {
    * Обработчик клика по кнопке фильтра (Д4)
    */
   const onFilterButtonClick = (evt) => {
-    const filterType = evt.target.id;
+    const filterType = evt.currentTarget.id;
     setActiveFilter(filterType);
   };
 
