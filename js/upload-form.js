@@ -639,11 +639,14 @@ const bindFormEvents = (elements, handlers) => {
   elements.hashtagsElement.addEventListener('keydown', handlers.onInputFieldEscape);
   elements.descriptionElement.addEventListener('keydown', handlers.onInputFieldEscape);
 
+  // Сначала удаляем старый обработчик, если он есть
+  if (escapeHandler) {
+    document.removeEventListener('keydown', escapeHandler);
+  }
+
+  // Затем сохраняем и добавляем новый обработчик
   escapeHandler = handlers.onEscapePress;
-
-  document.removeEventListener('keydown', handlers.onEscapePress);
-
-  document.addEventListener('keydown', handlers.onEscapePress);
+  document.addEventListener('keydown', escapeHandler);
 };
 
 /**

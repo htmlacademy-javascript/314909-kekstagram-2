@@ -2,10 +2,9 @@
 import { getPhotos } from './api.js';
 import { renderTemplateMessage } from './utils/render-template-message.js';
 import { renderPictures } from './thumbnails.js';
-import { initGallery } from './gallery.js';
+import { initGallery, updatePhotos } from './gallery.js';
 import { initFilters } from './filters.js';
 import { initUploadForm } from './upload-form.js';
-import { initFilterButtons } from './filters.js';
 
 const DATA_ERROR_TEMPLATE_SELECTOR = '#data-error';
 const ERROR_MESSAGE_TIMEOUT = 5000;
@@ -40,16 +39,18 @@ const showFilters = () => {
 const initApp = (photos) => {
   showFilters();
 
+  // Обновляем данные в галерее и рендерим миниатюры
+  updatePhotos(photos);
   renderPictures(photos);
-  initGallery(photos);
+  initGallery();
 
   initFilters(photos, (filteredPhotos) => {
+    updatePhotos(filteredPhotos);
     renderPictures(filteredPhotos);
   });
 };
 
 initUploadForm();
-initFilterButtons(); // Инициализируем обработчики кнопок сразу
 
 getPhotos()
   .then(initApp)
