@@ -476,7 +476,7 @@ const onFormSubmit = async (elements, evt) => {
     return;
   }
 
-  elements.submitElement.disabled = true;
+  elements.submitElement.setAttribute('disabled', '');
 
   try {
     await uploadPhoto(new FormData(elements.formElement));
@@ -485,7 +485,7 @@ const onFormSubmit = async (elements, evt) => {
   } catch {
     showErrorMessage();
   } finally {
-    elements.submitElement.disabled = false;
+    elements.submitElement.removeAttribute('disabled');
   }
 };
 
