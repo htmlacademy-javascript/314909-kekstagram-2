@@ -48,9 +48,7 @@ const setActiveFilter = (filterType) => {
  */
 const applyPendingFilter = () => {
   if (pendingFilter && photos && onFiltersChange) {
-    const filteredPhotos = applyFilter(pendingFilter, photos);
-    updatePhotos(filteredPhotos);
-    onFiltersChange(filteredPhotos);
+    debouncedFiltersChange(pendingFilter);
     pendingFilter = null;
   }
 };
