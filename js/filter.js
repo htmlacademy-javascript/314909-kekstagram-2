@@ -2,6 +2,8 @@
 
 import { RANDOM_PHOTO_COUNT } from './constants.js';
 
+const SHUFFLE_RANDOM_FACTOR = 0.5;
+
 /**
  * Применяет фильтр по умолчанию
  * @param {Array} photos - массив фотографий
@@ -15,7 +17,7 @@ const applyDefaultFilter = (photos) => photos;
  * @returns {Array}
  */
 const getRandomPhotos = (photos) => {
-  const shuffledPhotos = [...photos].sort(() => Math.random() - 0.5);
+  const shuffledPhotos = [...photos].sort(() => Math.random() - SHUFFLE_RANDOM_FACTOR);
   return shuffledPhotos.slice(0, RANDOM_PHOTO_COUNT);
 };
 

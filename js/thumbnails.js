@@ -39,6 +39,9 @@ const createPictureElement = (photo, template) => {
   pictureElement.querySelector(PICTURE_COMMENTS_SELECTOR).textContent = photo.comments.length;
   pictureElement.querySelector(PICTURE_LIKES_SELECTOR).textContent = photo.likes;
 
+  // Добавляем data-id для идентификации фотографии
+  pictureElement.dataset.photoId = photo.id;
+
   return pictureElement;
 };
 

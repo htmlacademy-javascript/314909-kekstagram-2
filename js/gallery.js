@@ -2,12 +2,27 @@
 
 import { openPicture, initPictureModal } from './big-picture-view.js';
 
+const PICTURES_SELECTOR = '.pictures';
+const PICTURE_SELECTOR = '.picture';
+
+let currentPhotos = [];
+
+/**
+ * Обновляет текущий список фотографий в галерее
+ * @param {Array} photos - массив фотографий
+ */
+const updatePhotos = (photos) => {
+  currentPhotos = photos;
+};
+
 /**
  * Инициализирует галерею фотографий
  * @param {Array} photos - массив фотографий
  */
 const initGallery = (photos) => {
-  const picturesElement = document.querySelector('.pictures');
+  currentPhotos = photos;
+
+  const picturesElement = document.querySelector(PICTURES_SELECTOR);
 
   if (!picturesElement) {
     return;
@@ -19,22 +34,22 @@ const initGallery = (photos) => {
   /**
    * Обработчик клика на миниатюру (Д4)
    */
-  const onPicturesElementClick = (evt) => {
-    const pictureElement = evt.target.closest('.picture');
+  const onPicturesClick = (evt) => {
+    const pictureElement = evt.target.closest(PICTURE_SELECTOR);
     if (pictureElement) {
       evt.preventDefault();
 
-      // Находим индекс фотографии
-      const pictureElements = Array.from(picturesElement.querySelectorAll('.picture'));
-      const index = pictureElements.indexOf(pictureElement);
+      // Находим фотографию по data-id
+      const photoId = Number(pictureElement.dataset.photoId);
+      const photo = currentPhotos.find((p) => p.id === photoId);
 
-      if (index !== -1) {
-        openPicture(photos[index]);
+      if (photo) {
+        openPicture(photo);
       }
     }
   };
 
-  picturesElement.addEventListener('click', onPicturesElementClick);
+  picturesElement.addEventListener('click', onPicturesClick);
 };
 
-export { initGallery };
+export { initGallery, updatePhotos };

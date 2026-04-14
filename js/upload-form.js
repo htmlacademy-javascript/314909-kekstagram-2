@@ -89,7 +89,7 @@ let pristine = null;
 let slider = null;
 let currentScale = 1;
 let currentEffect = 'none';
-let escapeHandler = null;
+let onDocumentEscapeKeyDown = null;
 
 /**
  * Получает элементы формы (кэширует результат)
@@ -317,13 +317,7 @@ const validateDescription = (value) => value.length <= MAX_DESCRIPTION_LENGTH;
  * @param {string} value - значение поля комментария
  * @returns {string}
  */
-const getDescriptionErrorMessage = (value) => {
-  if (value.length > MAX_DESCRIPTION_LENGTH) {
-    return `Длина комментария не может превышать ${MAX_DESCRIPTION_LENGTH} символов`;
-  }
-
-  return '';
-};
+const getDescriptionErrorMessage = () => `Длина комментария не может превышать ${MAX_DESCRIPTION_LENGTH} символов`;
 
 /**
  * Инициализирует валидацию Pristine
@@ -398,9 +392,9 @@ const closeForm = (elements) => {
   });
   elements.effectLevelElement.classList.add('hidden');
 
-  if (escapeHandler) {
-    document.removeEventListener('keydown', escapeHandler);
-    escapeHandler = null;
+  if (onDocumentEscapeKeyDown) {
+    document.removeEventListener('keydown', onDocumentEscapeKeyDown);
+    onDocumentEscapeKeyDown = null;
   }
 };
 
@@ -419,38 +413,38 @@ const showMessage = (templateId, overlaySelector, buttonSelector) => {
   const closeButtonElement = document.querySelector(buttonSelector);
   const overlayElement = document.querySelector(overlaySelector);
 
-  let onEscapePress = null;
-  let onOverlayClickFn = null;
+  let onMessageEscapeKeyDown = null;
+  let onOverlayClick = null;
 
-  const removeMessage = () => {
+  const onCloseButtonClick = () => {
     const existingMessageElement = document.querySelector(overlaySelector);
     existingMessageElement?.remove();
-    if (onEscapePress) {
-      document.removeEventListener('keydown', onEscapePress);
+    if (onMessageEscapeKeyDown) {
+      document.removeEventListener('keydown', onMessageEscapeKeyDown);
     }
-    if (onOverlayClickFn) {
-      overlayElement.removeEventListener('click', onOverlayClickFn);
+    if (onOverlayClick) {
+      overlayElement.removeEventListener('click', onOverlayClick);
     }
-    closeButtonElement.removeEventListener('click', removeMessage);
+    closeButtonElement.removeEventListener('click', onCloseButtonClick);
   };
 
-  onEscapePress = (evt) => {
+  onMessageEscapeKeyDown = (evt) => {
     if (evt.key === 'Escape') {
       evt.preventDefault();
       evt.stopPropagation();
-      removeMessage();
+      onCloseButtonClick();
     }
   };
 
-  onOverlayClickFn = (evt) => {
+  onOverlayClick = (evt) => {
     if (evt.target === overlayElement) {
-      removeMessage();
+      onCloseButtonClick();
     }
   };
 
-  closeButtonElement.addEventListener('click', removeMessage);
-  document.addEventListener('keydown', onEscapePress);
-  overlayElement.addEventListener('click', onOverlayClickFn);
+  closeButtonElement.addEventListener('click', onCloseButtonClick);
+  document.addEventListener('keydown', onMessageEscapeKeyDown);
+  overlayElement.addEventListener('click', onOverlayClick);
 };
 
 /**
@@ -476,7 +470,7 @@ const onFormSubmit = async (elements, evt) => {
     return;
   }
 
-  elements.submitElement.disabled = true;
+  elements.submitElement.setAttribute('disabled', '');
 
   try {
     await uploadPhoto(new FormData(elements.formElement));
@@ -485,7 +479,7 @@ const onFormSubmit = async (elements, evt) => {
   } catch {
     showErrorMessage();
   } finally {
-    elements.submitElement.disabled = false;
+    elements.submitElement.removeAttribute('disabled');
   }
 };
 
@@ -639,11 +633,14 @@ const bindFormEvents = (elements, handlers) => {
   elements.hashtagsElement.addEventListener('keydown', handlers.onInputFieldEscape);
   elements.descriptionElement.addEventListener('keydown', handlers.onInputFieldEscape);
 
-  escapeHandler = handlers.onEscapePress;
+  // Сначала удаляем старый обработчик, если он есть
+  if (onDocumentEscapeKeyDown) {
+    document.removeEventListener('keydown', onDocumentEscapeKeyDown);
+  }
 
-  document.removeEventListener('keydown', handlers.onEscapePress);
-
-  document.addEventListener('keydown', handlers.onEscapePress);
+  // Затем сохраняем и добавляем новый обработчик
+  onDocumentEscapeKeyDown = handlers.onEscapePress;
+  document.addEventListener('keydown', onDocumentEscapeKeyDown);
 };
 
 /**

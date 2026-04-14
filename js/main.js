@@ -3,13 +3,11 @@ import { getPhotos } from './api.js';
 import { renderTemplateMessage } from './utils/render-template-message.js';
 import { renderPictures } from './thumbnails.js';
 import { initGallery } from './gallery.js';
-import { initFilters } from './filters.js';
+import { initFilters, initFilterButtons } from './filters.js';
 import { initUploadForm } from './upload-form.js';
-import { initFilterButtons } from './filters.js';
 
 const DATA_ERROR_TEMPLATE_SELECTOR = '#data-error';
 const ERROR_MESSAGE_TIMEOUT = 5000;
-const FILTERS_SELECTOR = '.img-filters';
 
 /**
  * Показывает сообщение об ошибке загрузки данных
@@ -26,7 +24,7 @@ const showDataErrorMessage = () => {
  * Показывает блок фильтров фотографий
  */
 const showFilters = () => {
-  const filtersElement = document.querySelector(FILTERS_SELECTOR);
+  const filtersElement = document.querySelector('.img-filters');
 
   if (filtersElement) {
     filtersElement.classList.remove('img-filters--inactive');
@@ -49,7 +47,7 @@ const initApp = (photos) => {
 };
 
 initUploadForm();
-initFilterButtons(); // Инициализируем обработчики кнопок сразу
+initFilterButtons();
 
 getPhotos()
   .then(initApp)

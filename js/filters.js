@@ -2,16 +2,15 @@
 
 import { applyFilter } from './filter.js';
 import { debounce } from './utils/debounce-throttle.js';
+import { updatePhotos } from './gallery.js';
 
 const FILTERS_FORM_SELECTOR = '.img-filters__form';
 const FILTER_BUTTON_SELECTOR = '.img-filters__button';
 const ACTIVE_CLASS = 'img-filters__button--active';
 const FILTER_DEBOUNCE_DELAY = 500;
-const HANDLER_ATTACHED_ATTR = 'data-handler-attached';
 
 let photos = null;
 let onFiltersChange = null;
-let currentFilter = 'filter-default';
 let debouncedFiltersChange = null;
 let pendingFilter = null;
 let filterButtonElements = [];
@@ -21,7 +20,9 @@ let filterButtonElements = [];
  * @param {string} filterType - тип фильтра
  */
 const setActiveFilter = (filterType) => {
-  if (filterType === currentFilter) {
+  // Проверяем по DOM, а не по переменной (для корректной работы в тестах)
+  const currentActiveButton = document.querySelector(`.${ACTIVE_CLASS}`);
+  if (currentActiveButton && currentActiveButton.id === filterType) {
     return;
   }
 
@@ -31,9 +32,6 @@ const setActiveFilter = (filterType) => {
   if (activeButtonElement) {
     activeButtonElement.classList.add(ACTIVE_CLASS);
   }
-
-  // Обновляем текущий фильтр
-  currentFilter = filterType;
 
   // Если данные ещё не загружены, сохраняем pending фильтр
   if (!photos || !onFiltersChange) {
@@ -65,10 +63,10 @@ const initFilterButtons = () => {
     return;
   }
 
-  // Привязываем обработчики только один раз
-  const existingButtonElements = filtersFormElement.querySelectorAll(`${FILTER_BUTTON_SELECTOR}[${HANDLER_ATTACHED_ATTR}]`);
+  // Защита от повторной инициализации
+  const existingButtonElements = filtersFormElement.querySelectorAll(`${FILTER_BUTTON_SELECTOR}[data-handler-attached]`);
   if (existingButtonElements.length > 0) {
-    return; // Обработчики уже привязаны
+    return;
   }
 
   // Кэшируем кнопки фильтров (Д21)
@@ -78,15 +76,13 @@ const initFilterButtons = () => {
    * Обработчик клика по кнопке фильтра (Д4)
    */
   const onFilterButtonClick = (evt) => {
-    const filterType = evt.target.id;
+    const filterType = evt.currentTarget.id;
     setActiveFilter(filterType);
   };
 
   filterButtonElements.forEach((button) => {
     button.addEventListener('click', onFilterButtonClick);
-
-    // Помечаем кнопку как обработанную
-    button.setAttribute(HANDLER_ATTACHED_ATTR, 'true');
+    button.setAttribute('data-handler-attached', 'true');
   });
 };
 
@@ -102,6 +98,7 @@ const setFilterData = (photosData, onFiltersChangeCallback) => {
   // Инициализируем debounce
   debouncedFiltersChange = debounce((filterType) => {
     const filteredPhotos = applyFilter(filterType, photos);
+    updatePhotos(filteredPhotos);
     onFiltersChange(filteredPhotos);
   }, FILTER_DEBOUNCE_DELAY);
 
