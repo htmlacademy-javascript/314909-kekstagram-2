@@ -65,6 +65,12 @@ const initFilterButtons = () => {
     return;
   }
 
+  // Защита от повторной инициализации
+  const existingButtonElements = filtersFormElement.querySelectorAll(`${FILTER_BUTTON_SELECTOR}[data-handler-attached]`);
+  if (existingButtonElements.length > 0) {
+    return;
+  }
+
   // Кэшируем кнопки фильтров (Д21)
   filterButtonElements = [...filtersFormElement.querySelectorAll(FILTER_BUTTON_SELECTOR)];
 
@@ -78,6 +84,7 @@ const initFilterButtons = () => {
 
   filterButtonElements.forEach((button) => {
     button.addEventListener('click', onFilterButtonClick);
+    button.setAttribute('data-handler-attached', 'true');
   });
 };
 

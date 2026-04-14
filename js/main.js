@@ -3,7 +3,7 @@ import { getPhotos } from './api.js';
 import { renderTemplateMessage } from './utils/render-template-message.js';
 import { renderPictures } from './thumbnails.js';
 import { initGallery } from './gallery.js';
-import { initFilters } from './filters.js';
+import { initFilters, initFilterButtons } from './filters.js';
 import { initUploadForm } from './upload-form.js';
 
 const DATA_ERROR_TEMPLATE_SELECTOR = '#data-error';
@@ -47,6 +47,7 @@ const initApp = (photos) => {
 };
 
 initUploadForm();
+initFilterButtons();
 
 getPhotos()
   .then(initApp)
