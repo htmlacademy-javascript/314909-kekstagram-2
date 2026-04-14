@@ -32,6 +32,7 @@ const getElements = () => {
   }
 
   const bigPictureElement = document.querySelector(SELECTORS.bigPicture);
+
   if (!bigPictureElement) {
     return null;
   }
@@ -78,12 +79,11 @@ const renderComments = (elements, comments, start, end) => {
     commentTextElement.classList.add('social__text');
     commentTextElement.textContent = comment.message;
 
-    commentElement.appendChild(avatarElement);
-    commentElement.appendChild(commentTextElement);
-    fragmentElement.appendChild(commentElement);
+    commentElement.append(avatarElement, commentTextElement);
+    fragmentElement.append(commentElement);
   });
 
-  elements.commentsElement.appendChild(fragmentElement);
+  elements.commentsElement.append(fragmentElement);
 };
 
 /**
@@ -92,6 +92,14 @@ const renderComments = (elements, comments, start, end) => {
  */
 const updateCommentCount = (elements) => {
   elements.commentShownElement.textContent = displayedCommentsCount;
+};
+
+/**
+ * Очищает контейнер комментариев
+ * @param {Object} elements - элементы модального окна
+ */
+const clearComments = (elements) => {
+  elements.commentsElement.innerHTML = '';
 };
 
 /**
@@ -106,52 +114,9 @@ const loadMoreComments = (elements) => {
   displayedCommentsCount = end;
   updateCommentCount(elements);
 
-  // Скрываем кнопку, если показаны все комментарии
   if (displayedCommentsCount >= currentComments.length) {
     elements.commentsLoaderElement.classList.add('hidden');
   }
-};
-
-/**
- * Очищает контейнер комментариев
- * @param {Object} elements - элементы модального окна
- */
-const clearComments = (elements) => {
-  elements.commentsElement.innerHTML = '';
-};
-
-/**
- * Открывает полноразмерное изображение
- * @param {Object} photo - объект фотографии
- */
-const openPicture = (photo) => {
-  const elements = getElements();
-
-  if (!elements) {
-    return;
-  }
-
-  elements.imgElement.src = photo.url;
-  elements.captionElement.textContent = photo.description;
-  elements.likesElement.textContent = photo.likes;
-
-  // Инициализируем состояние комментариев
-  currentComments = photo.comments;
-  displayedCommentsCount = 0;
-
-  elements.commentTotalElement.textContent = photo.comments.length;
-
-  clearComments(elements);
-
-  // Показываем блоки счётчика и загрузки
-  elements.commentCountElement.classList.remove('hidden');
-  elements.commentsLoaderElement.classList.remove('hidden');
-
-  // Загружаем первую порцию комментариев
-  loadMoreComments(elements);
-
-  elements.bigPictureElement.classList.remove('hidden');
-  document.body.classList.add('modal-open');
 };
 
 /**
@@ -168,7 +133,6 @@ const closePicture = () => {
   document.body.classList.remove('modal-open');
   clearComments(elements);
 
-  // Сбрасываем состояние комментариев
   currentComments = [];
   displayedCommentsCount = 0;
 };
@@ -187,7 +151,7 @@ const handleClose = (onClose) => {
  * @param {Event} evt - событие клика
  * @param {Function} onClose - callback при закрытии
  */
-const onOverlayClick = (evt, onClose) => {
+const onBigPictureOverlayClick = (evt, onClose) => {
   const elements = getElements();
 
   if (!elements) {
@@ -200,14 +164,45 @@ const onOverlayClick = (evt, onClose) => {
 };
 
 /**
+ * Открывает полноразмерное изображение
+ * @param {Object} photo - объект фотографии
+ */
+const openPicture = (photo) => {
+  const elements = getElements();
+
+  if (!elements) {
+    return;
+  }
+
+  elements.imgElement.src = photo.url;
+  elements.captionElement.textContent = photo.description;
+  elements.likesElement.textContent = photo.likes;
+
+  currentComments = photo.comments;
+  displayedCommentsCount = 0;
+
+  elements.commentTotalElement.textContent = photo.comments.length;
+
+  clearComments(elements);
+
+  elements.commentCountElement.classList.remove('hidden');
+  elements.commentsLoaderElement.classList.remove('hidden');
+
+  loadMoreComments(elements);
+
+  elements.bigPictureElement.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+};
+
+/**
  * Инициализирует обработчики закрытия
  * @param {Function} onClose - callback при закрытии
  */
 const initPictureModal = (onClose) => {
-  // Защита от дублирования обработчиков (Д28)
   if (isModalInitialized) {
     return;
   }
+
   isModalInitialized = true;
 
   const elements = getElements();
@@ -216,15 +211,15 @@ const initPictureModal = (onClose) => {
     return;
   }
 
-  // Сначала удаляем старый обработчик Escape (Б26)
   if (escapeHandler) {
     document.removeEventListener('keydown', escapeHandler);
   }
 
   /**
    * Обработчик нажатия клавиши Escape
+   * @param {KeyboardEvent} evt - событие клавиатуры
    */
-  const onEscapePress = (evt) => {
+  const onDocumentKeydown = (evt) => {
     const currentElements = getElements();
 
     if (!currentElements) {
@@ -233,24 +228,37 @@ const initPictureModal = (onClose) => {
 
     if (evt.key === 'Escape' && !currentElements.bigPictureElement.classList.contains('hidden')) {
       evt.preventDefault();
-      closePicture();
-      onClose?.();
+      handleClose(onClose);
     }
   };
 
-  // Сохраняем ссылку на обработчик для удаления
-  escapeHandler = onEscapePress;
-
-  // Добавляем обработчик Escape
-  document.addEventListener('keydown', onEscapePress);
+  /**
+   * Обработчик клика по кнопке «Загрузить ещё»
+   */
+  const onCommentsLoaderClick = () => {
+    loadMoreComments(elements);
+  };
 
   /**
-   * Обработчик клика по кнопке «Загрузить ещё» (Д4)
+   * Обработчик клика по кнопке закрытия
    */
-  const onCommentsLoaderClick = () => loadMoreComments(elements);
+  const onBigPictureCancelClick = () => {
+    handleClose(onClose);
+  };
 
-  elements.cancelElement.addEventListener('click', () => handleClose(onClose));
-  elements.bigPictureElement.addEventListener('click', (evt) => onOverlayClick(evt, onClose));
+  /**
+   * Обработчик клика по области модального окна
+   * @param {MouseEvent} evt - событие мыши
+   */
+  const onBigPictureClick = (evt) => {
+    onBigPictureOverlayClick(evt, onClose);
+  };
+
+  escapeHandler = onDocumentKeydown;
+
+  document.addEventListener('keydown', onDocumentKeydown);
+  elements.cancelElement.addEventListener('click', onBigPictureCancelClick);
+  elements.bigPictureElement.addEventListener('click', onBigPictureClick);
   elements.commentsLoaderElement.addEventListener('click', onCommentsLoaderClick);
 };
 
