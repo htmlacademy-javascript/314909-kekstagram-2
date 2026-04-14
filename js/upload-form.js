@@ -317,13 +317,7 @@ const validateDescription = (value) => value.length <= MAX_DESCRIPTION_LENGTH;
  * @param {string} value - значение поля комментария
  * @returns {string}
  */
-const getDescriptionErrorMessage = (value) => {
-  if (value.length > MAX_DESCRIPTION_LENGTH) {
-    return `Длина комментария не может превышать ${MAX_DESCRIPTION_LENGTH} символов`;
-  }
-
-  return '';
-};
+const getDescriptionErrorMessage = () => `Длина комментария не может превышать ${MAX_DESCRIPTION_LENGTH} символов`;
 
 /**
  * Инициализирует валидацию Pristine
