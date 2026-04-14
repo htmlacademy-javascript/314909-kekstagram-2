@@ -17,8 +17,11 @@ const updatePhotos = (photos) => {
 
 /**
  * Инициализирует галерею фотографий
+ * @param {Array} photos - массив фотографий
  */
-const initGallery = () => {
+const initGallery = (photos) => {
+  currentPhotos = photos;
+
   const picturesElement = document.querySelector(PICTURES_SELECTOR);
 
   if (!picturesElement) {
@@ -31,12 +34,12 @@ const initGallery = () => {
   /**
    * Обработчик клика на миниатюру (Д4)
    */
-  const onPicturesElementClick = (evt) => {
+  const onPicturesClick = (evt) => {
     const pictureElement = evt.target.closest(PICTURE_SELECTOR);
     if (pictureElement) {
       evt.preventDefault();
 
-      // Находим индекс фотографии по data-id
+      // Находим фотографию по data-id
       const photoId = Number(pictureElement.dataset.photoId);
       const photo = currentPhotos.find((p) => p.id === photoId);
 
@@ -46,7 +49,7 @@ const initGallery = () => {
     }
   };
 
-  picturesElement.addEventListener('click', onPicturesElementClick);
+  picturesElement.addEventListener('click', onPicturesClick);
 };
 
 export { initGallery, updatePhotos };

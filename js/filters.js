@@ -2,6 +2,7 @@
 
 import { applyFilter } from './filter.js';
 import { debounce } from './utils/debounce-throttle.js';
+import { updatePhotos } from './gallery.js';
 
 const FILTERS_FORM_SELECTOR = '.img-filters__form';
 const FILTER_BUTTON_SELECTOR = '.img-filters__button';
@@ -47,7 +48,9 @@ const setActiveFilter = (filterType) => {
  */
 const applyPendingFilter = () => {
   if (pendingFilter && photos && onFiltersChange) {
-    debouncedFiltersChange(pendingFilter);
+    const filteredPhotos = applyFilter(pendingFilter, photos);
+    updatePhotos(filteredPhotos);
+    onFiltersChange(filteredPhotos);
     pendingFilter = null;
   }
 };
@@ -90,6 +93,7 @@ const setFilterData = (photosData, onFiltersChangeCallback) => {
   // Инициализируем debounce
   debouncedFiltersChange = debounce((filterType) => {
     const filteredPhotos = applyFilter(filterType, photos);
+    updatePhotos(filteredPhotos);
     onFiltersChange(filteredPhotos);
   }, FILTER_DEBOUNCE_DELAY);
 
