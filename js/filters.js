@@ -7,11 +7,9 @@ const FILTERS_FORM_SELECTOR = '.img-filters__form';
 const FILTER_BUTTON_SELECTOR = '.img-filters__button';
 const ACTIVE_CLASS = 'img-filters__button--active';
 const FILTER_DEBOUNCE_DELAY = 500;
-const HANDLER_ATTACHED_ATTR = 'data-handler-attached';
 
 let photos = null;
 let onFiltersChange = null;
-let currentFilter = 'filter-default';
 let debouncedFiltersChange = null;
 let pendingFilter = null;
 let filterButtonElements = [];
@@ -21,7 +19,9 @@ let filterButtonElements = [];
  * @param {string} filterType - тип фильтра
  */
 const setActiveFilter = (filterType) => {
-  if (filterType === currentFilter) {
+  // Проверяем по DOM, а не по переменной (для корректной работы в тестах)
+  const currentActiveButton = document.querySelector(`.${ACTIVE_CLASS}`);
+  if (currentActiveButton && currentActiveButton.id === filterType) {
     return;
   }
 
@@ -31,9 +31,6 @@ const setActiveFilter = (filterType) => {
   if (activeButtonElement) {
     activeButtonElement.classList.add(ACTIVE_CLASS);
   }
-
-  // Обновляем текущий фильтр
-  currentFilter = filterType;
 
   // Если данные ещё не загружены, сохраняем pending фильтр
   if (!photos || !onFiltersChange) {
@@ -65,12 +62,6 @@ const initFilterButtons = () => {
     return;
   }
 
-  // Привязываем обработчики только один раз
-  const existingButtonElements = filtersFormElement.querySelectorAll(`${FILTER_BUTTON_SELECTOR}[${HANDLER_ATTACHED_ATTR}]`);
-  if (existingButtonElements.length > 0) {
-    return; // Обработчики уже привязаны
-  }
-
   // Кэшируем кнопки фильтров (Д21)
   filterButtonElements = [...filtersFormElement.querySelectorAll(FILTER_BUTTON_SELECTOR)];
 
@@ -84,9 +75,6 @@ const initFilterButtons = () => {
 
   filterButtonElements.forEach((button) => {
     button.addEventListener('click', onFilterButtonClick);
-
-    // Помечаем кнопку как обработанную
-    button.setAttribute(HANDLER_ATTACHED_ATTR, 'true');
   });
 };
 
