@@ -84,6 +84,7 @@ const EFFECTS = {
 const HASHTAG_REGEX = /^#[a-zа-яё0-9]{1,19}$/i;
 const HASHTAG_VALIDATOR_PRIORITY = 1;
 const DESCRIPTION_VALIDATOR_PRIORITY = 2;
+const FILE_TYPES = ['jpg', 'jpeg', 'png', 'gif'];
 
 let pristine = null;
 let slider = null;
@@ -320,6 +321,16 @@ const validateDescription = (value) => value.length <= MAX_DESCRIPTION_LENGTH;
 const getDescriptionErrorMessage = () => `Длина комментария не может превышать ${MAX_DESCRIPTION_LENGTH} символов`;
 
 /**
+ * Проверяет корректность типа загружаемого файла
+ * @param {File} file - выбранный файл
+ * @returns {boolean}
+ */
+const isValidFileType = (file) => {
+  const fileName = file.name.toLowerCase();
+  return FILE_TYPES.some((extension) => fileName.endsWith(`.${extension}`));
+};
+
+/**
  * Инициализирует валидацию Pristine
  * @param {Object} elements - элементы формы
  */
@@ -491,9 +502,16 @@ const onFormSubmit = async (elements, evt) => {
 const onInputChange = (elements, evt) => {
   const file = evt.target.files[0];
 
-  if (file) {
-    openForm(elements, file);
+  if (!file) {
+    return;
   }
+
+  if (!isValidFileType(file)) {
+    evt.target.value = '';
+    return;
+  }
+
+  openForm(elements, file);
 };
 
 /**
@@ -554,11 +572,6 @@ const createFormHandlers = (elements) => {
   const onFormElementSubmit = (evt) => onFormSubmit(elements, evt);
 
   /**
-   * Обработчик сброса формы (Д4)
-   */
-  const onFormElementReset = () => closeForm(elements);
-
-  /**
    * Обработчик клика по кнопке уменьшения масштаба (Д4)
    */
   const onScaleSmallerElementClick = (evt) => onScaleSmallerClick(elements, evt);
@@ -603,7 +616,6 @@ const createFormHandlers = (elements) => {
     onInputElementChange,
     onCancelElementClick,
     onFormElementSubmit,
-    onFormElementReset,
     onScaleSmallerElementClick,
     onScaleBiggerElementClick,
     onRadioElementChange,
@@ -621,7 +633,6 @@ const bindFormEvents = (elements, handlers) => {
   elements.inputElement.addEventListener('change', handlers.onInputElementChange);
   elements.cancelElement.addEventListener('click', handlers.onCancelElementClick);
   elements.formElement.addEventListener('submit', handlers.onFormElementSubmit);
-  elements.formElement.addEventListener('reset', handlers.onFormElementReset);
 
   elements.scaleSmallerElement.addEventListener('click', handlers.onScaleSmallerElementClick);
   elements.scaleBiggerElement.addEventListener('click', handlers.onScaleBiggerElementClick);
