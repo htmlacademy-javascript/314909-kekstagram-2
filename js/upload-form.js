@@ -16,7 +16,6 @@ const SELECTORS = {
   formOverlay: '.img-upload__overlay',
   formInput: '#upload-file',
   formCancel: '#upload-cancel',
-  formPreview: '.img-upload__preview',
   previewImg: '.img-upload__preview img',
   effectsPreview: '.effects__preview',
   scaleSmaller: '.scale__control--smaller',
@@ -34,6 +33,7 @@ const SELECTORS = {
 const EFFECTS = {
   none: {
     filter: '',
+    unit: '',
     min: 0,
     max: 100,
     step: 1,
@@ -81,23 +81,25 @@ const EFFECTS = {
   }
 };
 
+const FILE_TYPES = ['jpg', 'jpeg', 'png', 'gif'];
 const HASHTAG_REGEX = /^#[a-zа-яё0-9]{1,19}$/i;
 const HASHTAG_VALIDATOR_PRIORITY = 1;
 const DESCRIPTION_VALIDATOR_PRIORITY = 2;
-const FILE_TYPES = ['jpg', 'jpeg', 'png', 'gif'];
 
 let pristine = null;
 let slider = null;
 let currentScale = 1;
 let currentEffect = 'none';
 let onDocumentEscapeKeyDown = null;
-
-/**
- * Получает элементы формы (кэширует результат)
- * @returns {Object|null}
- */
+let isUploadFormInitialized = false;
+let isSubmitting = false;
+let currentPreviewUrl = '';
 let elementsCache = null;
 
+/**
+ * Получает элементы формы
+ * @returns {Object|null}
+ */
 const getElements = () => {
   if (elementsCache) {
     return elementsCache;
@@ -114,7 +116,6 @@ const getElements = () => {
     overlayElement: formElement.querySelector(SELECTORS.formOverlay),
     inputElement: formElement.querySelector(SELECTORS.formInput),
     cancelElement: formElement.querySelector(SELECTORS.formCancel),
-    previewElement: formElement.querySelector(SELECTORS.formPreview),
     previewImgElement: formElement.querySelector(SELECTORS.previewImg),
     effectsPreviewElements: formElement.querySelectorAll(SELECTORS.effectsPreview),
     scaleSmallerElement: formElement.querySelector(SELECTORS.scaleSmaller),
@@ -133,14 +134,108 @@ const getElements = () => {
 };
 
 /**
+ * Проверяет, нажата ли клавиша Escape
+ * @param {KeyboardEvent} evt - событие клавиатуры
+ * @returns {boolean}
+ */
+const isEscapeKey = (evt) => evt.key === 'Escape';
+
+/**
+ * Переключает состояние кнопки отправки
+ * @param {Object} elements - элементы формы
+ * @param {boolean} isDisabled - признак блокировки
+ */
+const toggleSubmitButton = (elements, isDisabled) => {
+  elements.submitElement.disabled = isDisabled;
+};
+
+/**
+ * Добавляет обработчик закрытия формы по Escape
+ * @param {Function} handler - обработчик keydown
+ */
+const bindEscapeHandler = (handler) => {
+  if (onDocumentEscapeKeyDown) {
+    document.removeEventListener('keydown', onDocumentEscapeKeyDown);
+  }
+
+  onDocumentEscapeKeyDown = handler;
+  document.addEventListener('keydown', onDocumentEscapeKeyDown);
+};
+
+/**
+ * Удаляет обработчик закрытия формы по Escape
+ */
+const unbindEscapeHandler = () => {
+  if (!onDocumentEscapeKeyDown) {
+    return;
+  }
+
+  document.removeEventListener('keydown', onDocumentEscapeKeyDown);
+  onDocumentEscapeKeyDown = null;
+};
+
+/**
+ * Освобождает blob URL превью
+ */
+const revokePreviewUrl = () => {
+  if (!currentPreviewUrl) {
+    return;
+  }
+
+  URL.revokeObjectURL(currentPreviewUrl);
+  currentPreviewUrl = '';
+};
+
+/**
  * Сбрасывает визуальный эффект с изображения
  * @param {Object} elements - элементы формы
  */
 const clearEffect = (elements) => {
   elements.previewImgElement.style.filter = '';
-  elements.effectsPreviewElements.forEach((preview) => {
-    preview.style.filter = '';
+  elements.effectsPreviewElements.forEach((previewElement) => {
+    previewElement.style.filter = '';
   });
+};
+
+/**
+ * Сбрасывает масштаб изображения
+ * @param {Object} elements - элементы формы
+ */
+const resetScale = (elements) => {
+  currentScale = 1;
+  elements.scaleValueElement.value = '100%';
+  elements.previewImgElement.style.transform = 'scale(1)';
+};
+
+/**
+ * Сбрасывает состояние эффектов
+ * @param {Object} elements - элементы формы
+ */
+const resetEffectState = (elements) => {
+  currentEffect = 'none';
+  clearEffect(elements);
+  elements.effectLevelElement.classList.add('hidden');
+
+  elements.effectsPreviewElements.forEach((previewElement) => {
+    previewElement.style.backgroundImage = '';
+  });
+};
+
+/**
+ * Полностью сбрасывает состояние формы
+ * @param {Object} elements - элементы формы
+ */
+const resetFormState = (elements) => {
+  elements.inputElement.value = '';
+  elements.formElement.reset();
+  toggleSubmitButton(elements, false);
+  pristine.reset();
+
+  resetScale(elements);
+  resetEffectState(elements);
+
+  isSubmitting = false;
+  revokePreviewUrl();
 };
 
 /**
@@ -156,10 +251,11 @@ const applyEffect = (elements, value) => {
     return;
   }
 
-  const filterValue = `${effect.filter}(${value}${effect.unit || ''})`;
+  const filterValue = `${effect.filter}(${value}${effect.unit})`;
   elements.previewImgElement.style.filter = filterValue;
-  elements.effectsPreviewElements.forEach((preview) => {
-    preview.style.filter = filterValue;
+
+  elements.effectsPreviewElements.forEach((previewElement) => {
+    previewElement.style.filter = filterValue;
   });
 };
 
@@ -190,27 +286,18 @@ const initSlider = (elements) => {
   slider.on('update', () => {
     const value = slider.get();
     const numericValue = parseFloat(value);
+
     elements.effectLevelValueElement.value = numericValue;
     applyEffect(elements, String(numericValue));
   });
 };
 
 /**
- * Показывает/скрывает слайдер в зависимости от эффекта
+ * Показывает или скрывает блок уровня эффекта
  * @param {Object} elements - элементы формы
  */
 const updateEffectVisibility = (elements) => {
   elements.effectLevelElement.classList.toggle('hidden', currentEffect === 'none');
-};
-
-/**
- * Сбрасывает масштаб к значению по умолчанию
- * @param {Object} elements - элементы формы
- */
-const resetScale = (elements) => {
-  currentScale = 1;
-  elements.scaleValueElement.value = '100%';
-  elements.previewImgElement.style.transform = `scale(${currentScale})`;
 };
 
 /**
@@ -221,107 +308,188 @@ const resetScale = (elements) => {
 const updateScale = (elements, step) => {
   const newScale = currentScale + step;
 
-  if (newScale >= SCALE_MIN && newScale <= SCALE_MAX) {
-    currentScale = newScale;
-    elements.previewImgElement.style.transform = `scale(${currentScale})`;
-    elements.scaleValueElement.value = `${Math.round(currentScale * 100)}%`;
+  if (newScale < SCALE_MIN || newScale > SCALE_MAX) {
+    return;
   }
+
+  currentScale = newScale;
+  elements.previewImgElement.style.transform = `scale(${currentScale})`;
+  elements.scaleValueElement.value = `${Math.round(currentScale * 100)}%`;
 };
 
 /**
- * Парсит строку хэштегов в массив
- * @param {string} value - значение поля хэштегов
- * @returns {string[]} массив хэштегов
+ * Разбивает строку хэштегов в массив
+ * @param {string} value - значение поля
+ * @returns {string[]}
  */
-const parseHashtags = (value) => value.trim().split(/\s+/).filter((tag) => tag !== '');
+const parseHashtags = (value) => value.trim().split(/\s+/).filter(Boolean);
 
 /**
- * Результат проверки одного хэштега
- * @param {string} hashtag - хэштег для проверки
- * @param {Set} usedHashtags - множество уже проверенных хэштегов
- * @returns {{isValid: boolean, error: string|null}} результат проверки
+ * Проверяет, состоит ли хэштег только из символа #
+ * @param {string} hashtag - хэштег
+ * @returns {boolean}
  */
-const validateSingleHashtag = (hashtag, usedHashtags) => {
-  const lowerHashtag = hashtag.toLowerCase();
+const isSingleHash = (hashtag) => hashtag === '#';
 
-  if (!HASHTAG_REGEX.test(hashtag)) {
-    if (hashtag === '#') {
-      return { isValid: false, error: 'Хэш-тег не может состоять только из одной решётки' };
-    }
+/**
+ * Проверяет длину хэштега
+ * @param {string} hashtag - хэштег
+ * @returns {boolean}
+ */
+const isHashtagTooLong = (hashtag) => hashtag.length > MAX_HASHTAG_LENGTH;
 
-    if (hashtag.length > MAX_HASHTAG_LENGTH) {
-      return { isValid: false, error: `Максимальная длина хэштега ${MAX_HASHTAG_LENGTH} символов` };
-    }
+/**
+ * Проверяет формат хэштега
+ * @param {string} hashtag - хэштег
+ * @returns {boolean}
+ */
+const isHashtagFormatValid = (hashtag) => HASHTAG_REGEX.test(hashtag);
 
-    return { isValid: false, error: 'Неправильный хэштег' };
+/**
+ * Создаёт объект ошибки валидации
+ * @param {string} error - текст ошибки
+ * @returns {{isValid: boolean, error: string}}
+ */
+const createInvalidResult = (error) => ({ isValid: false, error });
+
+/**
+ * Создаёт успешный результат валидации
+ * @returns {{isValid: boolean, error: null}}
+ */
+const createValidResult = () => ({ isValid: true, error: null });
+
+/**
+ * Возвращает сообщение об ошибке хэштега
+ * @param {string} hashtag - хэштег
+ * @returns {string|null}
+ */
+const getSingleHashtagError = (hashtag) => {
+  if (isSingleHash(hashtag)) {
+    return 'Хэш-тег не может состоять только из одной решётки';
   }
 
+  if (isHashtagTooLong(hashtag)) {
+    return `Максимальная длина хэштега ${MAX_HASHTAG_LENGTH} символов`;
+  }
+
+  if (!isHashtagFormatValid(hashtag)) {
+    return 'Неправильный хэштег';
+  }
+
+  return null;
+};
+
+/**
+ * Проверяет один хэштег
+ * @param {string} hashtag - хэштег
+ * @param {Set<string>} usedHashtags - использованные хэштеги
+ * @returns {{isValid: boolean, error: string|null}}
+ */
+const validateSingleHashtag = (hashtag, usedHashtags) => {
+  const hashtagError = getSingleHashtagError(hashtag);
+
+  if (hashtagError) {
+    return createInvalidResult(hashtagError);
+  }
+
+  const lowerHashtag = hashtag.toLowerCase();
+
   if (usedHashtags.has(lowerHashtag)) {
-    return { isValid: false, error: 'Хэштеги не должны повторяться' };
+    return createInvalidResult('Хэштеги не должны повторяться');
   }
 
   usedHashtags.add(lowerHashtag);
-  return { isValid: true, error: null };
+
+  return createValidResult();
 };
 
 /**
- * Результат проверки хэштегов
- * @param {string} value - значение поля хэштегов
- * @returns {{isValid: boolean, error: string|null}} результат проверки
+ * Проверяет, пуст ли список хэштегов
+ * @param {string[]} hashtags - массив хэштегов
+ * @returns {boolean}
+ */
+const isEmptyHashtagsList = (hashtags) => hashtags.length === 0;
+
+/**
+ * Проверяет превышение количества хэштегов
+ * @param {string[]} hashtags - массив хэштегов
+ * @returns {boolean}
+ */
+const isHashtagsLimitExceeded = (hashtags) => hashtags.length > MAX_HASHTAGS;
+
+/**
+ * Возвращает сообщение об ошибке количества хэштегов
+ * @returns {string}
+ */
+const getHashtagsCountErrorMessage = () => `Нельзя указать больше ${MAX_HASHTAGS} хэштегов`;
+
+/**
+ * Валидирует список хэштегов по одному
+ * @param {string[]} hashtags - массив хэштегов
+ * @returns {{isValid: boolean, error: string|null}}
+ */
+const validateHashtagsList = (hashtags) => {
+  const usedHashtags = new Set();
+
+  for (const hashtag of hashtags) {
+    const validationResult = validateSingleHashtag(hashtag, usedHashtags);
+
+    if (!validationResult.isValid) {
+      return validationResult;
+    }
+  }
+
+  return createValidResult();
+};
+
+/**
+ * Проверяет хэштеги и возвращает результат проверки
+ * @param {string} value - значение поля
+ * @returns {{isValid: boolean, error: string|null}}
  */
 const validateHashtagsWithResult = (value) => {
   const hashtags = parseHashtags(value);
 
-  if (hashtags.length === 0) {
-    return { isValid: true, error: null };
+  if (isEmptyHashtagsList(hashtags)) {
+    return createValidResult();
   }
 
-  if (hashtags.length > MAX_HASHTAGS) {
-    return { isValid: false, error: `Нельзя указать больше ${MAX_HASHTAGS} хэштегов` };
+  if (isHashtagsLimitExceeded(hashtags)) {
+    return createInvalidResult(getHashtagsCountErrorMessage());
   }
 
-  const usedHashtags = new Set();
-
-  for (const hashtag of hashtags) {
-    const result = validateSingleHashtag(hashtag, usedHashtags);
-    if (!result.isValid) {
-      return { isValid: false, error: result.error };
-    }
-  }
-
-  return { isValid: true, error: null };
+  return validateHashtagsList(hashtags);
 };
 
 /**
  * Проверяет валидность хэштегов
- * @param {string} value - значение поля хэштегов
+ * @param {string} value - значение поля
  * @returns {boolean}
  */
 const validateHashtags = (value) => validateHashtagsWithResult(value).isValid;
 
 /**
  * Возвращает сообщение об ошибке для хэштегов
- * @param {string} value - значение поля хэштегов
+ * @param {string} value - значение поля
  * @returns {string}
  */
 const getHashtagErrorMessage = (value) => validateHashtagsWithResult(value).error || '';
 
 /**
- * Проверяет валидность комментария
- * @param {string} value - значение поля комментария
+ * Проверяет комментарий
+ * @param {string} value - значение поля
  * @returns {boolean}
  */
 const validateDescription = (value) => value.length <= MAX_DESCRIPTION_LENGTH;
 
 /**
  * Возвращает сообщение об ошибке для комментария
- * @param {string} value - значение поля комментария
  * @returns {string}
  */
 const getDescriptionErrorMessage = () => `Длина комментария не может превышать ${MAX_DESCRIPTION_LENGTH} символов`;
 
 /**
- * Проверяет корректность типа загружаемого файла
+ * Проверяет формат загружаемого файла
  * @param {File} file - выбранный файл
  * @returns {boolean}
  */
@@ -331,7 +499,7 @@ const isValidFileType = (file) => {
 };
 
 /**
- * Инициализирует валидацию Pristine
+ * Инициализирует Pristine
  * @param {Object} elements - элементы формы
  */
 const initValidation = (elements) => {
@@ -361,25 +529,53 @@ const initValidation = (elements) => {
 };
 
 /**
+ * Проверяет, открыта ли форма
+ * @param {Object} elements - элементы формы
+ * @returns {boolean}
+ */
+const isFormOpened = (elements) => !elements.overlayElement.classList.contains('hidden');
+
+/**
+ * Проверяет, открыто ли сервисное сообщение
+ * @returns {boolean}
+ */
+const isMessageOpened = () => Boolean(document.querySelector('.error') || document.querySelector('.success'));
+
+/**
+ * Проверяет, находится ли фокус в текстовых полях формы
+ * @param {Object} elements - элементы формы
+ * @returns {boolean}
+ */
+const isTextFieldFocused = (elements) => {
+  const activeElement = document.activeElement;
+  return activeElement === elements.hashtagsElement || activeElement === elements.descriptionElement;
+};
+
+/**
  * Открывает форму редактирования изображения
  * @param {Object} elements - элементы формы
  * @param {File} file - выбранный файл
+ * @param {Function} onEscapePress - обработчик Escape
  */
-const openForm = (elements, file) => {
-  const url = URL.createObjectURL(file);
+const openForm = (elements, file, onEscapePress) => {
+  revokePreviewUrl();
+  currentPreviewUrl = URL.createObjectURL(file);
 
-  elements.previewImgElement.src = url;
-  elements.effectsPreviewElements.forEach((preview) => {
-    preview.style.backgroundImage = `url(${url})`;
+  elements.previewImgElement.src = currentPreviewUrl;
+  elements.effectsPreviewElements.forEach((previewElement) => {
+    previewElement.style.backgroundImage = `url(${currentPreviewUrl})`;
   });
 
   elements.overlayElement.classList.remove('hidden');
   document.body.classList.add('modal-open');
 
+  toggleSubmitButton(elements, false);
+  isSubmitting = false;
   resetScale(elements);
   currentEffect = 'none';
   elements.effectLevelElement.classList.add('hidden');
   initSlider(elements);
+  bindEscapeHandler(onEscapePress);
 };
 
 /**
@@ -390,81 +586,91 @@ const closeForm = (elements) => {
   elements.overlayElement.classList.add('hidden');
   document.body.classList.remove('modal-open');
 
-  elements.inputElement.value = '';
-  elements.formElement.reset();
+  resetFormState(elements);
+  unbindEscapeHandler();
+};
 
-  pristine.reset();
+/**
+ * Удаляет сообщение со страницы
+ * @param {string} overlaySelector - селектор оверлея сообщения
+ */
+const removeMessageElement = (overlaySelector) => {
+  document.querySelector(overlaySelector)?.remove();
+};
 
-  resetScale(elements);
-  currentEffect = 'none';
-  clearEffect(elements);
-  elements.effectsPreviewElements.forEach((preview) => {
-    preview.style.backgroundImage = '';
-  });
-  elements.effectLevelElement.classList.add('hidden');
+/**
+ * Добавляет обработчики закрытия сервисного сообщения
+ * @param {HTMLElement|null} overlayElement - элемент оверлея
+ * @param {HTMLElement|null} closeButtonElement - кнопка закрытия
+ * @param {Function} closeMessage - функция закрытия
+ * @returns {{onMessageEscapeKeyDown: Function, onOverlayClick: Function}}
+ */
+const addMessageCloseHandlers = (overlayElement, closeButtonElement, closeMessage) => {
+  const onMessageEscapeKeyDown = (evt) => {
+    if (!isEscapeKey(evt)) {
+      return;
+    }
 
-  if (onDocumentEscapeKeyDown) {
-    document.removeEventListener('keydown', onDocumentEscapeKeyDown);
-    onDocumentEscapeKeyDown = null;
-  }
+    evt.preventDefault();
+    evt.stopPropagation();
+    closeMessage();
+  };
+
+  const onOverlayClick = (evt) => {
+    if (evt.target === overlayElement) {
+      closeMessage();
+    }
+  };
+
+  closeButtonElement?.addEventListener('click', closeMessage);
+  document.addEventListener('keydown', onMessageEscapeKeyDown);
+  overlayElement?.addEventListener('click', onOverlayClick);
+
+  return {
+    onMessageEscapeKeyDown,
+    onOverlayClick
+  };
 };
 
 /**
  * Показывает сообщение на основе шаблона
- * @param {string} templateId - ID шаблона
- * @param {string} overlaySelector - CSS-селектор оверлея
- * @param {string} buttonSelector - CSS-селектор кнопки закрытия
+ * @param {string} templateId - идентификатор шаблона
+ * @param {string} overlaySelector - селектор оверлея
+ * @param {string} buttonSelector - селектор кнопки закрытия
  */
 const showMessage = (templateId, overlaySelector, buttonSelector) => {
   const messageElement = renderTemplateMessage(templateId);
+
   if (!messageElement) {
     return;
   }
 
-  const closeButtonElement = document.querySelector(buttonSelector);
   const overlayElement = document.querySelector(overlaySelector);
+  const closeButtonElement = document.querySelector(buttonSelector);
 
-  let onMessageEscapeKeyDown = null;
-  let onOverlayClick = null;
+  let handlers = null;
 
-  const onCloseButtonClick = () => {
-    const existingMessageElement = document.querySelector(overlaySelector);
-    existingMessageElement?.remove();
-    if (onMessageEscapeKeyDown) {
-      document.removeEventListener('keydown', onMessageEscapeKeyDown);
+  const closeMessage = () => {
+    removeMessageElement(overlaySelector);
+
+    if (handlers) {
+      document.removeEventListener('keydown', handlers.onMessageEscapeKeyDown);
+      overlayElement?.removeEventListener('click', handlers.onOverlayClick);
     }
-    if (onOverlayClick) {
-      overlayElement.removeEventListener('click', onOverlayClick);
-    }
-    closeButtonElement.removeEventListener('click', onCloseButtonClick);
+
+    closeButtonElement?.removeEventListener('click', closeMessage);
   };
 
-  onMessageEscapeKeyDown = (evt) => {
-    if (evt.key === 'Escape') {
-      evt.preventDefault();
-      evt.stopPropagation();
-      onCloseButtonClick();
-    }
-  };
-
-  onOverlayClick = (evt) => {
-    if (evt.target === overlayElement) {
-      onCloseButtonClick();
-    }
-  };
-
-  closeButtonElement.addEventListener('click', onCloseButtonClick);
-  document.addEventListener('keydown', onMessageEscapeKeyDown);
-  overlayElement.addEventListener('click', onOverlayClick);
+  handlers = addMessageCloseHandlers(overlayElement, closeButtonElement, closeMessage);
 };
 
 /**
- * Показывает сообщение об успехе
+ * Показывает сообщение об успешной отправке
  */
 const showSuccessMessage = () => showMessage('#success', '.success', '.success__button');
 
 /**
- * Показывает сообщение об ошибке
+ * Показывает сообщение об ошибке отправки
  */
 const showErrorMessage = () => showMessage('#error', '.error', '.error__button');
 
@@ -476,30 +682,37 @@ const showErrorMessage = () => showMessage('#error', '.error', '.error__button')
 const onFormSubmit = async (elements, evt) => {
   evt.preventDefault();
 
+  if (isSubmitting) {
+    return;
+  }
+
   const isValid = pristine.validate();
+
   if (!isValid) {
     return;
   }
 
-  elements.submitElement.setAttribute('disabled', '');
+  isSubmitting = true;
+  toggleSubmitButton(elements, true);
 
   try {
     await uploadPhoto(new FormData(elements.formElement));
-    showSuccessMessage();
     closeForm(elements);
+    showSuccessMessage();
   } catch {
+    isSubmitting = false;
+    toggleSubmitButton(elements, false);
     showErrorMessage();
-  } finally {
-    elements.submitElement.removeAttribute('disabled');
   }
 };
 
 /**
- * Обрабатывает изменение поля загрузки файла
+ * Обрабатывает выбор файла
  * @param {Object} elements - элементы формы
  * @param {Event} evt - событие изменения
+ * @param {Function} onEscapePress - обработчик Escape
  */
-const onInputChange = (elements, evt) => {
+const onInputChange = (elements, evt, onEscapePress) => {
   const file = evt.target.files[0];
 
   if (!file) {
@@ -511,11 +724,11 @@ const onInputChange = (elements, evt) => {
     return;
   }
 
-  openForm(elements, file);
+  openForm(elements, file, onEscapePress);
 };
 
 /**
- * Обрабатывает нажатие на кнопку уменьшения масштаба
+ * Обрабатывает уменьшение масштаба
  * @param {Object} elements - элементы формы
  * @param {Event} evt - событие клика
  */
@@ -525,7 +738,7 @@ const onScaleSmallerClick = (elements, evt) => {
 };
 
 /**
- * Обрабатывает нажатие на кнопку увеличения масштаба
+ * Обрабатывает увеличение масштаба
  * @param {Object} elements - элементы формы
  * @param {Event} evt - событие клика
  */
@@ -535,129 +748,116 @@ const onScaleBiggerClick = (elements, evt) => {
 };
 
 /**
- * Обрабатывает изменение эффекта
+ * Обрабатывает смену эффекта
  * @param {Object} elements - элементы формы
- * @param {Event} evt - событие изменения
+ * @param {Event} evt - событие change
  */
 const onEffectChange = (elements, evt) => {
-  if (evt.target.checked) {
-    currentEffect = evt.target.value;
-    updateEffectVisibility(elements);
-    initSlider(elements);
+  if (!evt.target.checked) {
+    return;
   }
+
+  currentEffect = evt.target.value;
+  updateEffectVisibility(elements);
+  initSlider(elements);
 };
 
 /**
- * Создаёт и возвращает объект обработчиков формы
+ * Обрабатывает нажатие Escape в текстовых полях
+ * @param {KeyboardEvent} evt - событие клавиатуры
+ */
+const onInputFieldEscape = (evt) => {
+  if (!isEscapeKey(evt)) {
+    return;
+  }
+
+  evt.stopPropagation();
+};
+
+/**
+ * Проверяет, нужно ли пропустить закрытие формы по Escape
  * @param {Object} elements - элементы формы
- * @returns {Object} объект обработчиков
+ * @param {KeyboardEvent} evt - событие клавиатуры
+ * @returns {boolean}
+ */
+const shouldSkipEscapeClose = (elements, evt) => (
+  !isEscapeKey(evt) ||
+  !isFormOpened(elements) ||
+  isMessageOpened() ||
+  isTextFieldFocused(elements)
+);
+
+/**
+ * Создаёт обработчик закрытия формы по Escape
+ * @param {Object} elements - элементы формы
+ * @returns {Function}
+ */
+const createOnEscapePress = (elements) => (evt) => {
+  if (shouldSkipEscapeClose(elements, evt)) {
+    return;
+  }
+
+  evt.preventDefault();
+  closeForm(elements);
+};
+
+/**
+ * Создаёт обработчик клика по кнопке отмены
+ * @param {Object} elements - элементы формы
+ * @returns {Function}
+ */
+const createOnCancelElementClick = (elements) => (evt) => {
+  evt.preventDefault();
+  closeForm(elements);
+};
+
+/**
+ * Создаёт обработчики формы
+ * @param {Object} elements - элементы формы
+ * @returns {Object}
  */
 const createFormHandlers = (elements) => {
-  /**
-   * Обработчик изменения поля загрузки файла (Д4)
-   */
-  const onInputElementChange = (evt) => onInputChange(elements, evt);
-
-  /**
-   * Обработчик клика по кнопке отмены (Д4)
-   */
-  const onCancelElementClick = (evt) => {
-    evt.preventDefault();
-    closeForm(elements);
-  };
-
-  /**
-   * Обработчик отправки формы (Д4)
-   */
-  const onFormElementSubmit = (evt) => onFormSubmit(elements, evt);
-
-  /**
-   * Обработчик клика по кнопке уменьшения масштаба (Д4)
-   */
-  const onScaleSmallerElementClick = (evt) => onScaleSmallerClick(elements, evt);
-
-  /**
-   * Обработчик клика по кнопке увеличения масштаба (Д4)
-   */
-  const onScaleBiggerElementClick = (evt) => onScaleBiggerClick(elements, evt);
-
-  /**
-   * Обработчик изменения эффекта (Д4)
-   */
-  const onRadioElementChange = (evt) => onEffectChange(elements, evt);
-
-  /**
-   * Обработчик нажатия Escape на полях ввода (Д4, Д24)
-   */
-  const onInputFieldEscape = (evt) => {
-    if (evt.key === 'Escape') {
-      evt.stopPropagation();
-    }
-  };
-
-  /**
-   * Обработчик нажатия Escape для закрытия формы (Д4)
-   */
-  const onEscapePress = (evt) => {
-    if (evt.key === 'Escape' && !elements.overlayElement.classList.contains('hidden')) {
-      if (document.querySelector('.error') || document.querySelector('.success')) {
-        return;
-      }
-
-      const activeElement = document.activeElement;
-
-      if (activeElement !== elements.hashtagsElement && activeElement !== elements.descriptionElement) {
-        closeForm(elements);
-      }
-    }
-  };
+  const onEscapePress = createOnEscapePress(elements);
 
   return {
-    onInputElementChange,
-    onCancelElementClick,
-    onFormElementSubmit,
-    onScaleSmallerElementClick,
-    onScaleBiggerElementClick,
-    onRadioElementChange,
-    onInputFieldEscape,
-    onEscapePress
+    onInputElementChange: (evt) => onInputChange(elements, evt, onEscapePress),
+    onCancelElementClick: createOnCancelElementClick(elements),
+    onFormElementSubmit: (evt) => onFormSubmit(elements, evt),
+    onScaleSmallerElementClick: (evt) => onScaleSmallerClick(elements, evt),
+    onScaleBiggerElementClick: (evt) => onScaleBiggerClick(elements, evt),
+    onRadioElementChange: (evt) => onEffectChange(elements, evt),
+    onInputFieldEscape
   };
 };
 
 /**
- * Привязывает обработчики к элементам формы
+ * Привязывает обработчики к форме
  * @param {Object} elements - элементы формы
- * @param {Object} handlers - объект обработчиков
+ * @param {Object} handlers - обработчики
  */
 const bindFormEvents = (elements, handlers) => {
   elements.inputElement.addEventListener('change', handlers.onInputElementChange);
   elements.cancelElement.addEventListener('click', handlers.onCancelElementClick);
   elements.formElement.addEventListener('submit', handlers.onFormElementSubmit);
-
   elements.scaleSmallerElement.addEventListener('click', handlers.onScaleSmallerElementClick);
   elements.scaleBiggerElement.addEventListener('click', handlers.onScaleBiggerElementClick);
 
-  elements.effectsRadioElements.forEach((radio) => {
-    radio.addEventListener('change', handlers.onRadioElementChange);
+  elements.effectsRadioElements.forEach((radioElement) => {
+    radioElement.addEventListener('change', handlers.onRadioElementChange);
   });
 
   elements.hashtagsElement.addEventListener('keydown', handlers.onInputFieldEscape);
   elements.descriptionElement.addEventListener('keydown', handlers.onInputFieldEscape);
-
-  // Сначала удаляем старый обработчик, если он есть
-  if (onDocumentEscapeKeyDown) {
-    document.removeEventListener('keydown', onDocumentEscapeKeyDown);
-  }
-
-  // Затем сохраняем и добавляем новый обработчик
-  onDocumentEscapeKeyDown = handlers.onEscapePress;
-  document.addEventListener('keydown', onDocumentEscapeKeyDown);
 };
 
 /**
- * Инициализирует обработчики формы
+ * Инициализирует форму загрузки
  */
 const initUploadForm = () => {
+  if (isUploadFormInitialized) {
+    return;
+  }
+
   const elements = getElements();
 
   if (!elements) {
@@ -668,6 +868,8 @@ const initUploadForm = () => {
 
   const handlers = createFormHandlers(elements);
   bindFormEvents(elements, handlers);
+
+  isUploadFormInitialized = true;
 };
 
 export { initUploadForm };
